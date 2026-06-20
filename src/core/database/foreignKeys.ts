@@ -564,5 +564,64 @@ export async function createForeignKeys(db: Database): Promise<void> {
     ],
   });
 
+  // 14. familias → comunidades (SET NULL) + fieis (responsavel_id SET NULL)
+  await recreateTableWithFKs(db, {
+    tableName: "familias",
+    newColumns: ["id","sobrenome","endereco","comunidade_id","comunidade","responsavel_id","recebe_caritas","observacoes","uuid","created_at","updated_at","deleted_at"],
+    nullifyOrphans: [
+      { column: "comunidade_id",  refTable: "comunidades" },
+      { column: "responsavel_id", refTable: "fieis"       },
+    ],
+    createSQL: `
+      CREATE TABLE "familias" (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        sobrenome       TEXT NOT NULL,
+        endereco        TEXT,
+        comunidade_id   INTEGER REFERENCES comunidades(id) ON DELETE SET NULL,
+        comunidade      TEXT,
+        responsavel_id  INTEGER REFERENCES fieis(id)       ON DELETE SET NULL,
+        recebe_caritas  INTEGER DEFAULT 0,
+        observacoes     TEXT,
+        uuid            TEXT,
+        created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+        deleted_at      DATETIME
+      )`,
+    indexesSQL: [
+      "CREATE INDEX IF NOT EXISTS idx_familias_comunidade_id ON familias(comunidade_id)",
+      "CREATE INDEX IF NOT EXISTS idx_familias_responsavel   ON familias(responsavel_id)",
+    ],
+  });
+
+  // 15. catequistas → fieis (SET NULL)
+  await recreateTableWithFKs(db, {
+    tableName: "catequistas",
+    newColumns: ["id","nome","telefone","comunidade","disponibilidade","fiel_id","nome_fiel","formacao","tel_fiel","email_fiel","endereco_fiel","uuid","created_at","updated_at","deleted_at"],
+    nullifyOrphans: [
+      { column: "fiel_id", refTable: "fieis" },
+    ],
+    createSQL: `
+      CREATE TABLE "catequistas" (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome            TEXT NOT NULL,
+        telefone        TEXT,
+        comunidade      TEXT,
+        disponibilidade TEXT,
+        fiel_id         INTEGER REFERENCES fieis(id) ON DELETE SET NULL,
+        nome_fiel       TEXT,
+        formacao        TEXT,
+        tel_fiel        TEXT,
+        email_fiel      TEXT,
+        endereco_fiel   TEXT,
+        uuid            TEXT,
+        created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+        deleted_at      DATETIME
+      )`,
+    indexesSQL: [
+      "CREATE INDEX IF NOT EXISTS idx_catequistas_fiel_id ON catequistas(fiel_id)",
+    ],
+  });
+
   console.log("════ FK concluído ════");
 }

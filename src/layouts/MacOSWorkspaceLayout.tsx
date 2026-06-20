@@ -19,6 +19,9 @@ import { FinanceiroPanel } from "@/modules/financeiro/FinanceiroPanel";
 import { SacramentalPanel } from "@/modules/sacramental/SacramentalPanel";
 import { CatequesePanel } from "@/modules/catequese/CatequesePanel";
 import { PastoralPanel } from "@/modules/pastoral/PastoralPanel";
+import { AgendaPanel } from "@/modules/agenda/AgendaPanel";
+import { PatrimonioPanel } from "@/modules/patrimonio/PatrimonioPanel";
+import { ConfiguracoesPanel } from "@/modules/configuracoes/ConfiguracoesPanel";
 import { DocumentosPage } from "@/modules/documentos";
 import { AgendaPage } from "@/modules/agenda/pages/AgendaPage";
 import { FinanceiroPage } from "@/modules/financeiro";
@@ -177,6 +180,9 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
     if (mod === "catequese")   return <CatequesePanel />;
     if (SACRAMENTAL_MODS[mod]) return <SacramentalPanel />;
     if (PASTORAL_ABAS[mod])    return <PastoralPanel />;
+    if (mod === "agenda")      return <AgendaPanel />;
+    if (mod === "patrimonio")  return <PatrimonioPanel />;
+    if (mod === "configuracoes") return <ConfiguracoesPanel />;
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 8, padding: "24px 0" }}>
         <div style={{ fontSize: 28, opacity: 0.25 }}>⬚</div>

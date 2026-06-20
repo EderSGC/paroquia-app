@@ -191,6 +191,36 @@ const MIGRATIONS: Migration[] = [
       }
     },
   },
+  {
+    version: 20260620003,
+    description: "Consolidar dataNascimento → data_nascimento (final) e adicionar índices FK faltantes",
+    up: async (db) => {
+      // Garantir que qualquer valor restante em dataNascimento seja copiado
+      await db.execute(`
+        UPDATE fieis
+           SET data_nascimento = dataNascimento
+         WHERE (data_nascimento IS NULL OR data_nascimento = '')
+           AND dataNascimento IS NOT NULL
+           AND dataNascimento != ''
+      `).catch(() => {});
+
+      // Índices FK faltantes identificados na auditoria
+      const indexes = [
+        "CREATE INDEX IF NOT EXISTS idx_familias_responsavel_id ON familias(responsavel_id)",
+        "CREATE INDEX IF NOT EXISTS idx_familias_comunidade_id ON familias(comunidade_id)",
+        "CREATE INDEX IF NOT EXISTS idx_pastorais_coordenador_id ON pastorais(coordenador_id)",
+        "CREATE INDEX IF NOT EXISTS idx_pastorais_vice_id ON pastorais(vice_id)",
+        "CREATE INDEX IF NOT EXISTS idx_pastorais_secretario_id ON pastorais(secretario_id)",
+        "CREATE INDEX IF NOT EXISTS idx_pastorais_tesoureiro_id ON pastorais(tesoureiro_id)",
+        "CREATE INDEX IF NOT EXISTS idx_usuarios_comunidade_id ON usuarios(comunidade_id)",
+        "CREATE INDEX IF NOT EXISTS idx_catequistas_fiel_id ON catequistas(fiel_id)",
+        "CREATE INDEX IF NOT EXISTS idx_fieis_comunidade_id ON fieis(comunidade_id)",
+      ];
+      for (const sql of indexes) {
+        await db.execute(sql).catch(() => {});
+      }
+    },
+  },
 ];
 
 /**

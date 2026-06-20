@@ -56,27 +56,33 @@ export function DashboardPanel() {
         const cfg = cfgRows[0] ?? { comunidade: 30, area_missionaria: 40, arquidiocese: 29, fundo_missionario: 1 };
 
 
-        const unitsResult = await db.select<{ origem: string }[]>(
-          "SELECT DISTINCT origem FROM lancamentos WHERE origem IS NOT NULL AND origem!='' AND deleted_at IS NULL ORDER BY origem"
-        ).catch(() => [] as { origem: string }[]);
+        // Saldo por unidade — query agregada (elimina N+1)
+        const saldoRows = await db.select<{ unidade: string; sd: number; last_data: string }[]>(`
+          SELECT unidade, COALESCE(saldo_disponivel,0) as sd, data as last_data
+          FROM caixa_fechamento cf1
+          WHERE cf1.id = (SELECT cf2.id FROM caixa_fechamento cf2 WHERE cf2.unidade=cf1.unidade ORDER BY cf2.data DESC LIMIT 1)
+        `).catch(() => [] as { unidade: string; sd: number; last_data: string }[]);
 
         let saldo = 0;
-        for (const { origem: unit } of unitsResult) {
-          const closeRows = await db.select<Record<string, unknown>[]>(
-            "SELECT COALESCE(saldo_disponivel,0) as sd, data FROM caixa_fechamento WHERE unidade=? ORDER BY data DESC LIMIT 1",
-            [unit]
-          ).catch(() => [] as Record<string, unknown>[]);
-          const lastClose = closeRows[0];
-          const saldoAnterior = toN(lastClose?.sd);
-          const lastDate = String(lastClose?.data ?? "1900-01-01");
-          const movRows = await db.select<Record<string, unknown>[]>(
+        if (saldoRows.length > 0) {
+          for (const row of saldoRows) {
+            const movRows = await db.select<Record<string, unknown>[]>(
+              `SELECT COALESCE(SUM(CASE WHEN tipo='ENTRADA' THEN valor ELSE 0 END),0) as ent,
+                      COALESCE(SUM(CASE WHEN tipo='SAIDA'   THEN valor ELSE 0 END),0) as sai
+               FROM lancamentos WHERE origem=? AND data > ? AND deleted_at IS NULL`,
+              [row.unidade, row.last_data]
+            ).catch(() => [] as Record<string, unknown>[]);
+            const mov = movRows[0] ?? {};
+            saldo += toN(row.sd) + calcularRepasse(toN(mov.ent) - toN(mov.sai), dbRowToPartilha(cfg)).saldoDisponivel;
+          }
+        } else {
+          const totalRows = await db.select<Record<string, unknown>[]>(
             `SELECT COALESCE(SUM(CASE WHEN tipo='ENTRADA' THEN valor ELSE 0 END),0) as ent,
                     COALESCE(SUM(CASE WHEN tipo='SAIDA'   THEN valor ELSE 0 END),0) as sai
-             FROM lancamentos WHERE origem=? AND data > ? AND deleted_at IS NULL`,
-            [unit, lastDate]
+             FROM lancamentos WHERE deleted_at IS NULL`
           ).catch(() => [] as Record<string, unknown>[]);
-          const mov = movRows[0] ?? {};
-          saldo += saldoAnterior + calcularRepasse(toN(mov.ent) - toN(mov.sai), dbRowToPartilha(cfg)).saldoDisponivel;
+          const mov = totalRows[0] ?? {};
+          saldo = calcularRepasse(toN(mov.ent) - toN(mov.sai), dbRowToPartilha(cfg)).saldoDisponivel;
         }
 
         const anivs = await db.select<{ nome: string; comunidade: string }[]>(

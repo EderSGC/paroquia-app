@@ -80,6 +80,19 @@ export async function createIndexes(db: Database): Promise<void> {
     { table: "grupos",                name: "idx_grupos_pastoral_id",    cols: "pastoral_id" },
     { table: "grupos",                name: "idx_grupos_comunidade",     cols: "comunidade" },
     { table: "pastorais",             name: "idx_pastorais_comunidade",  cols: "comunidade" },
+    { table: "pastorais",             name: "idx_pastorais_coordenador", cols: "coordenador_id" },
+    { table: "pastorais",             name: "idx_pastorais_vice",        cols: "vice_id" },
+    { table: "pastorais",             name: "idx_pastorais_secretario",  cols: "secretario_id" },
+    { table: "pastorais",             name: "idx_pastorais_tesoureiro",  cols: "tesoureiro_id" },
+    // ── familias ──────────────────────────────────────────────────────────
+    { table: "familias",              name: "idx_familias_responsavel",  cols: "responsavel_id" },
+    { table: "familias",              name: "idx_familias_comunidade_id",cols: "comunidade_id" },
+    // ── fieis ─────────────────────────────────────────────────────────────
+    { table: "fieis",                 name: "idx_fieis_comunidade_id",   cols: "comunidade_id" },
+    // ── usuarios ──────────────────────────────────────────────────────────
+    { table: "usuarios",              name: "idx_usuarios_comunidade_id",cols: "comunidade_id" },
+    // ── catequistas ───────────────────────────────────────────────────────
+    { table: "catequistas",           name: "idx_catequistas_fiel_id",   cols: "fiel_id" },
     // ── contas ────────────────────────────────────────────────────────────
     { table: "contas",                name: "idx_contas_comunidade",     cols: "comunidade" },
     { table: "contas",                name: "idx_contas_uuid",           cols: "uuid" },

@@ -9,12 +9,30 @@ interface MembroComFiel extends MembroFamilia {
 class FielRepositoryClass extends BaseRepository<Fiel> {
   constructor() { super('fieis', true); }
 
-  async findAllOrdenados(): Promise<Fiel[]> {
+  async findAllOrdenados(limit = 500, offset = 0): Promise<Fiel[]> {
     const db = await getDb();
-    return db.select<Fiel[]>('SELECT * FROM fieis WHERE deleted_at IS NULL ORDER BY nome ASC');
+    return db.select<Fiel[]>(
+      'SELECT * FROM fieis WHERE deleted_at IS NULL ORDER BY nome ASC LIMIT $1 OFFSET $2',
+      [limit, offset]
+    );
   }
 
-  async findByNome(termo: string, limit = 20): Promise<Fiel[]> {
+  async count(filtro?: string): Promise<number> {
+    const db = await getDb();
+    if (filtro) {
+      const rows = await db.select<{ total: number }[]>(
+        'SELECT COUNT(*) as total FROM fieis WHERE deleted_at IS NULL AND nome LIKE $1',
+        [`%${filtro}%`]
+      );
+      return rows[0]?.total ?? 0;
+    }
+    const rows = await db.select<{ total: number }[]>(
+      'SELECT COUNT(*) as total FROM fieis WHERE deleted_at IS NULL'
+    );
+    return rows[0]?.total ?? 0;
+  }
+
+  async findByNome(termo: string, limit = 50): Promise<Fiel[]> {
     const db = await getDb();
     return db.select<Fiel[]>(
       'SELECT * FROM fieis WHERE nome LIKE $1 AND deleted_at IS NULL ORDER BY nome ASC LIMIT $2',

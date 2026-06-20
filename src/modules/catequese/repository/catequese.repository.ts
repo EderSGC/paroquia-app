@@ -70,7 +70,7 @@ class CatequeseMatriculaRepositoryClass extends BaseRepository<CatequeseMatricul
 
   async findAll(): Promise<CatequeseMatricula[]> {
     const db = await getDb();
-    return db.select<CatequeseMatricula[]>('SELECT * FROM catequese_matriculas WHERE deleted_at IS NULL');
+    return db.select<CatequeseMatricula[]>('SELECT * FROM catequese_matriculas WHERE deleted_at IS NULL ORDER BY id DESC LIMIT 5000');
   }
 
   async findByTurma(turmaId: number): Promise<CatequeseMatricula[]> {
@@ -120,7 +120,7 @@ class CatequesePresencaRepositoryClass extends BaseRepository<CatequesePresenca>
 
   async findAll(): Promise<CatequesePresenca[]> {
     const db = await getDb();
-    return db.select<CatequesePresenca[]>('SELECT * FROM catequese_presencas');
+    return db.select<CatequesePresenca[]>('SELECT * FROM catequese_presencas ORDER BY id DESC LIMIT 10000');
   }
 
   async deleteByEncontro(encontroId: number): Promise<void> {

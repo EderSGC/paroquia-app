@@ -15,7 +15,6 @@
 export interface Fiel {
   id: number;
   nome: string;
-  dataNascimento?: string | null;
   data_nascimento?: string | null;
   telefone?: string | null;
   email?: string | null;

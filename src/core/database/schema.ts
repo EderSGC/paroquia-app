@@ -22,8 +22,7 @@ export const EXPECTED_SCHEMA: TableSchema[] = [
     columns: [
       { name: "id",                  type: "INTEGER PRIMARY KEY AUTOINCREMENT" },
       { name: "nome",                type: "TEXT", notNull: true },
-      { name: "dataNascimento",      type: "TEXT" },  // legado — escrito por usePastoral.ts
-      { name: "data_nascimento",     type: "TEXT" },  // canônico — normalizado por migration
+      { name: "data_nascimento",     type: "TEXT" },
       { name: "telefone",            type: "TEXT" },
       { name: "email",               type: "TEXT" },  // adicionado por usePastoral.ts
       { name: "endereco",            type: "TEXT" },  // adicionado por usePastoral.ts
