@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Sistema de Gestão Paroquial",
+  "version": "1.1.0",
+  "identifier": "com.paroquia.sistema.gestao",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Sistema de Gestão Paroquial",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 960,
+        "minHeight": 640
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data: blob:; connect-src ipc: http://ipc.localhost; window-src 'self'; font-src 'self' data:;"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "publisher": "Sistema de Gestão Paroquial",
+    "copyright": "© 2026 Sistema de Gestão Paroquial. Todos os direitos reservados.",
+    "category": "Business",
+    "shortDescription": "Sistema de gestão para paróquias e comunidades católicas",
+    "longDescription": "Sistema completo de gestão paroquial com módulos para Fiéis, Catequese, Sacramentos, Financeiro, Patrimônio, Agenda e Documentos. Dados armazenados localmente com segurança.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "wix": {
+        "language": "pt-BR"
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    }
+  }
+}

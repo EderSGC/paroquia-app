@@ -1,0 +1,522 @@
+import type { CSSProperties } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { readFile } from "@tauri-apps/plugin-fs";
+import { getDb } from "@core/database";
+import {
+  fazerBackup,
+  restaurarBackup,
+  getBackupInfo,
+} from "../../../core/services/backup.service";
+import { AuditoriaPage } from "../../configuracoes/pages/AuditoriaPage";
+
+import { AppLogo } from "../../../core/ui/AppLogo";
+import { ModalAlert, ModalConfirm } from "../../../core/ui/Modal";
+import type { Paroquia, Usuario, PapelUsuario } from "../../../core/types/app.types";
+import { LABEL_PAPEL } from "../../../core/types/app.types";
+import { createDataUrl } from "../../../core/utils/image";
+import {
+  salvarConfiguracoesParoquia,
+  carregarPartilha, salvarPartilha,
+  listarUsuarios, criarUsuario, excluirUsuario,
+  type ConfigPartilha, type UsuarioListItem,
+} from "../../auth/services/auth.service";
+
+interface SystemConfigPageProps {
+  paroquia: Paroquia;
+  usuario: Usuario;
+  onParoquiaUpdated: (paroquia: Paroquia) => void;
+}
+
+const inputStyle: CSSProperties = {
+  width: "100%", padding: "12px 14px", borderRadius: 10,
+  border: "1px solid #d6dbe7", background: "#ffffff",
+  color: "#1a1d2e", fontSize: 14, boxSizing: "border-box",
+};
+
+const labelStyle: CSSProperties = {
+  display: "block", marginBottom: 6, fontSize: 12,
+  fontWeight: 700, color: "#667085",
+  textTransform: "uppercase", letterSpacing: "0.05em",
+};
+
+const numInput: CSSProperties = {
+  width: "100%", padding: "10px 12px", borderRadius: 8,
+  border: "1px solid #d6dbe7", background: "#fff",
+  color: "#1a1d2e", fontSize: 15, fontWeight: 700,
+  textAlign: "right", boxSizing: "border-box",
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: SystemConfigPageProps) {
+  const isParoco = usuario.papel === 'paroquia' || usuario.papel === 'admin';
+
+  // ── Dados da paróquia ──────────────────────────────────────────────────────
+  const [form, setForm] = useState<Paroquia>(paroquia);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+  const [mensagem, setMensagem] = useState("");
+  const [alerta, setAlerta] = useState<{ tipo: "sucesso" | "erro" | "info"; msg: string } | null>(null);
+  const [fazendoBackup, setFazendoBackup] = useState(false);
+  const [restaurando, setRestaurando] = useState(false);
+  const [backupInfo, setBackupInfo] = useState(getBackupInfo());
+  const [abaAtiva, setAbaAtiva] = useState<"identidade" | "backup" | "partilha" | "usuarios" | "auditoria">("identidade");
+
+  // ── Partilha ───────────────────────────────────────────────────────────────
+  const [partilha, setPartilha] = useState<ConfigPartilha>({ comunidade: 30, areaMissionaria: 40, arquidiocese: 29, fundoMissionario: 1 });
+  const [salvandoPartilha, setSalvandoPartilha] = useState(false);
+  const totalPartilha = partilha.comunidade + partilha.areaMissionaria + partilha.arquidiocese + partilha.fundoMissionario;
+  const partilhaValida = Math.abs(totalPartilha - 100) < 0.01;
+
+  // ── Usuários ───────────────────────────────────────────────────────────────
+  const [usuarios, setUsuarios] = useState<UsuarioListItem[]>([]);
+  const [comunidades, setComunidades] = useState<{ id: number; nome: string }[]>([]);
+  const [novoUsuario, setNovoUsuario] = useState({ nome: "", login: "", senha: "", papel: "vigario" as PapelUsuario, comunidade_id: "" });
+  const [criandoUsuario, setCriandoUsuario] = useState(false);
+  const [idExcluirUsuario, setIdExcluirUsuario] = useState<number | null>(null);
+
+  useEffect(() => { setForm(paroquia); }, [paroquia]);
+
+  const carregarDados = useCallback(async () => {
+    if (!isParoco) return;
+    const [p, us] = await Promise.all([carregarPartilha(), listarUsuarios()]);
+    setPartilha(p);
+    setUsuarios(us);
+    const db = await getDb();
+    const cs = await db.select<{ id: number; nome: string }[]>("SELECT id, nome FROM comunidades WHERE deleted_at IS NULL ORDER BY nome");
+    setComunidades(cs);
+  }, [isParoco]);
+
+  useEffect(() => { carregarDados(); }, [carregarDados]);
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function updateField<K extends keyof Paroquia>(key: K, value: Paroquia[K]) {
+    setForm(c => ({ ...c, [key]: value }));
+  }
+
+  function getTituloParoquia(nome: string) {
+    const normalized = nome.trim();
+    if (!normalized) return { principal: "Área Missionária", secundario: "Nome da Comunidade" };
+    const prefixes = ["Área Missionária", "Paróquia", "Comunidade", "Santuário", "Catedral"];
+    const foundPrefix = prefixes.find(p => normalized.startsWith(`${p} `));
+    if (foundPrefix) return { principal: foundPrefix, secundario: normalized.slice(foundPrefix.length).trim() };
+    return { principal: normalized, secundario: "" };
+  }
+
+  async function selecionarImagem(target: "logo_path" | "diocese_logo_path") {
+    const path = await open({ filters: [{ name: "Imagem", extensions: ["png", "jpg", "jpeg"] }] });
+    if (path && typeof path === "string") {
+      const bytes = await readFile(path);
+      updateField(target, createDataUrl(path, new Uint8Array(bytes)));
+    }
+  }
+
+  async function handleFazerBackup() {
+    setFazendoBackup(true);
+    try {
+      const destino = await fazerBackup();
+      setBackupInfo(getBackupInfo());
+      setAlerta({ tipo: "sucesso", msg: `✅ Backup salvo com sucesso!\n\n📁 ${destino}` });
+    } catch (e) {
+      if ((e as Error)?.message !== "CANCELLED") {
+        console.error(e);
+        setAlerta({ tipo: "erro", msg: "Não foi possível realizar o backup. Verifique as permissões de pasta." });
+      }
+    } finally { setFazendoBackup(false); }
+  }
+
+  async function handleRestaurarBackup() {
+    setRestaurando(true);
+    try {
+      await restaurarBackup();
+      // Se chegou aqui sem recarregar, algo deu errado silenciosamente
+    } catch (e) {
+      if ((e as Error)?.message !== "CANCELLED") {
+        console.error(e);
+        setAlerta({ tipo: "erro", msg: "Não foi possível restaurar o backup. Verifique se o arquivo selecionado é válido." });
+      }
+    } finally { setRestaurando(false); }
+  }
+
+  async function salvar() {
+    if (!form.nome.trim()) { setErro("Informe o nome da paróquia."); return; }
+    if (!form.diocese.trim()) { setErro("Informe o nome da diocese."); return; }
+    setSalvando(true); setErro(""); setMensagem("");
+    try {
+      await salvarConfiguracoesParoquia(form);
+      onParoquiaUpdated(form);
+      setMensagem("Configurações salvas com sucesso.");
+    } catch { setErro("Não foi possível salvar as configurações agora."); }
+    finally { setSalvando(false); }
+  }
+
+  async function gravarPartilha() {
+    if (!partilhaValida) { setAlerta({ tipo: "erro", msg: "A soma dos percentuais deve ser exatamente 100%." }); return; }
+    setSalvandoPartilha(true);
+    try {
+      await salvarPartilha(partilha);
+      setAlerta({ tipo: "sucesso", msg: "Configuração da partilha salva com sucesso!" });
+    } catch { setAlerta({ tipo: "erro", msg: "Erro ao salvar a partilha." }); }
+    finally { setSalvandoPartilha(false); }
+  }
+
+  async function handleCriarUsuario(e: React.FormEvent) {
+    e.preventDefault();
+    if (!novoUsuario.nome || !novoUsuario.login || !novoUsuario.senha) {
+      setAlerta({ tipo: "erro", msg: "Preencha todos os campos obrigatórios." }); return;
+    }
+    if (novoUsuario.papel === 'membro' && !novoUsuario.comunidade_id) {
+      setAlerta({ tipo: "erro", msg: "Selecione a comunidade do membro." }); return;
+    }
+    setCriandoUsuario(true);
+    try {
+      await criarUsuario({
+        nome: novoUsuario.nome.trim(),
+        login: novoUsuario.login.trim(),
+        senha: novoUsuario.senha,
+        papel: novoUsuario.papel,
+        comunidade_id: novoUsuario.comunidade_id ? Number(novoUsuario.comunidade_id) : null,
+      });
+      setNovoUsuario({ nome: "", login: "", senha: "", papel: "vigario", comunidade_id: "" });
+      await carregarDados();
+      setAlerta({ tipo: "sucesso", msg: "Usuário criado com sucesso!" });
+    } catch {
+      setAlerta({ tipo: "erro", msg: "Erro ao criar usuário. Login já pode estar em uso." });
+    } finally { setCriandoUsuario(false); }
+  }
+
+  async function handleExcluirUsuario() {
+    if (!idExcluirUsuario) return;
+    if (idExcluirUsuario === usuario.id) {
+      setAlerta({ tipo: "erro", msg: "Você não pode excluir sua própria conta." });
+      setIdExcluirUsuario(null); return;
+    }
+    try {
+      await excluirUsuario(idExcluirUsuario);
+      await carregarDados();
+      setAlerta({ tipo: "sucesso", msg: "Usuário removido." });
+    } catch { setAlerta({ tipo: "erro", msg: "Erro ao remover usuário." }); }
+    setIdExcluirUsuario(null);
+  }
+
+  const tituloParoquia = getTituloParoquia(form.nome);
+
+  const abas = [
+    { id: "identidade", label: "🏛️ Identidade" },
+    { id: "backup",     label: "💾 Backup" },
+    ...(isParoco ? [
+      { id: "partilha",  label: "⚖️ Partilha" },
+      { id: "usuarios",  label: "👥 Usuários" },
+      { id: "auditoria", label: "🔍 Auditoria" },
+    ] : []),
+  ] as { id: typeof abaAtiva; label: string }[];
+
+  return (
+    <div style={{ display: "grid", gap: 24 }}>
+      <ModalAlert aberto={!!alerta} tipo={alerta?.tipo ?? "info"} mensagem={alerta?.msg ?? ""} onFechar={() => setAlerta(null)} />
+      <ModalConfirm
+        aberto={idExcluirUsuario !== null}
+        titulo="Remover Usuário"
+        mensagem="Deseja remover este usuário do sistema? Esta ação não pode ser desfeita."
+        textoBotaoOk="Remover"
+        cor="danger"
+        onConfirmar={handleExcluirUsuario}
+        onCancelar={() => setIdExcluirUsuario(null)}
+      />
+
+      {/* ── Abas de navegação ── */}
+      <div style={{ display: "flex", gap: 6, background: "white", padding: 6, borderRadius: 14, border: "1px solid #e4e7ec", flexWrap: "wrap" }}>
+        {abas.map(aba => (
+          <button
+            key={aba.id}
+            onClick={() => setAbaAtiva(aba.id)}
+            style={{
+              padding: "8px 16px", borderRadius: 10, border: "none", cursor: "pointer",
+              fontWeight: 600, fontSize: 13,
+              background: abaAtiva === aba.id ? "#1f3b73" : "transparent",
+              color: abaAtiva === aba.id ? "white" : "#667085",
+              transition: "all 0.15s",
+            }}
+          >
+            {aba.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Auditoria ── */}
+      {abaAtiva === "auditoria" && isParoco && (
+        <AuditoriaPage usuario={usuario} />
+      )}
+
+      {/* ── Backup ── */}
+      {abaAtiva === "backup" && (
+      <section style={{ background: "white", borderRadius: 18, border: "1px solid #e4e7ec", padding: 28 }}>
+        <h2 style={{ margin: "0 0 8px", fontSize: 20, color: "#1a1d2e" }}>💾 Backup e Restauração</h2>
+        <p style={{ margin: "0 0 24px", color: "#667085", fontSize: 14, lineHeight: 1.6 }}>
+          Faça backup regularmente do banco de dados para evitar perda de informações.
+          A restauração substituirá todos os dados atuais pelo backup selecionado.
+        </p>
+
+        {/* Info último backup */}
+        <div style={{ background: "#f8fafc", borderRadius: 12, border: "1px solid #e4e7ec", padding: 16, marginBottom: 24 }}>
+          <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: "#667085", textTransform: "uppercase" }}>Último Backup</p>
+          {backupInfo.lastBackupDate ? (
+            <>
+              <p style={{ margin: "0 0 2px", fontSize: 14, fontWeight: 600, color: "#027a48" }}>
+                {new Date(backupInfo.lastBackupDate).toLocaleString("pt-BR")}
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: "#667085", wordBreak: "break-all" }}>
+                {backupInfo.lastBackupPath}
+              </p>
+            </>
+          ) : (
+            <p style={{ margin: 0, fontSize: 14, color: "#b42318" }}>Nenhum backup realizado ainda.</p>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <button
+            onClick={handleFazerBackup}
+            disabled={fazendoBackup}
+            style={{ background: "#059669", color: "white", border: "none", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: fazendoBackup ? 0.7 : 1 }}
+          >
+            {fazendoBackup ? "⏳ Fazendo backup..." : "📥 Fazer Backup Agora"}
+          </button>
+
+          <button
+            onClick={handleRestaurarBackup}
+            disabled={restaurando}
+            style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: restaurando ? 0.7 : 1 }}
+          >
+            {restaurando ? "⏳ Restaurando..." : "🔄 Restaurar Backup"}
+          </button>
+        </div>
+
+        <p style={{ margin: "16px 0 0", fontSize: 12, color: "#b45309", background: "#fef3c7", padding: "10px 14px", borderRadius: 8, border: "1px solid #fde68a" }}>
+          ⚠️ A restauração substitui imediatamente todos os dados atuais e reinicia o sistema. Esta operação não pode ser desfeita.
+        </p>
+      </section>
+      )}
+
+      {/* ── Identidade institucional ── */}
+      {abaAtiva === "identidade" && (<>
+      <section style={{ background: "white", borderRadius: 18, border: "1px solid #e4e7ec", padding: 28, boxShadow: "0 18px 48px rgba(15,23,42,0.06)" }}>
+        <h2 style={{ margin: "0 0 8px", color: "#1a1d2e", fontSize: 22 }}>Identidade institucional</h2>
+        <p style={{ margin: "0 0 24px", color: "#667085", fontSize: 14, maxWidth: 760, lineHeight: 1.6 }}>
+          Dados oficiais da diocese e paróquia — usados em documentos, memorandos e certidões.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18 }}>
+          {([
+            ["Nome da Paróquia", "nome", "Ex: Área Missionária Nossa da Esperança"],
+            ["Nome da Diocese", "diocese", "Ex: Arquidiocese de Manaus"],
+            ["Endereço", "endereco", "Rua, número e bairro"],
+            ["CEP", "cep", "69000-000"],
+            ["Cidade", "cidade", "Manaus"],
+            ["Estado", "estado", "AM"],
+            ["E-mail", "email", "secretaria@paroquia.org.br"],
+            ["Telefone", "telefone", "(92) 0000-0000"],
+            ["CNPJ", "cnpj", "00.000.000/0000-00"],
+          ] as [string, keyof Paroquia, string][]).map(([label, field, placeholder]) => (
+            <div key={field}>
+              <label style={labelStyle}>{label}</label>
+              <input
+                style={inputStyle}
+                value={(form[field] as string) || ""}
+                onChange={e => updateField(field, field === "estado" ? e.target.value.toUpperCase() : e.target.value)}
+                placeholder={placeholder}
+                maxLength={field === "estado" ? 2 : undefined}
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Logos */}
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
+        {([
+          ["logo_path", "Logo da Paróquia", "Esta logo aparecerá no sistema e no cabeçalho dos documentos.", "P"],
+          ["diocese_logo_path", "Logo da Diocese", "Esta logo ficará no lado direito dos documentos oficiais.", "D"],
+        ] as [keyof Paroquia, string, string, string][]).map(([field, titulo, desc, fallback]) => (
+          <div key={field} style={{ background: "white", borderRadius: 18, border: "1px solid #e4e7ec", padding: 24 }}>
+            <h3 style={{ margin: "0 0 8px", fontSize: 18, color: "#1a1d2e" }}>{titulo}</h3>
+            <p style={{ margin: "0 0 18px", color: "#667085", fontSize: 13, lineHeight: 1.6 }}>{desc}</p>
+            <div onClick={() => selecionarImagem(field as "logo_path" | "diocese_logo_path")}
+              style={{ border: "2px dashed #d6dbe7", borderRadius: 16, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, cursor: "pointer", background: "#f8fafc" }}>
+              <AppLogo logoPath={form[field] as string} alt={titulo} size={110} radius={18} fallbackText={fallback} background="white" padding={4} />
+              <strong style={{ color: "#1d2939", fontSize: 14 }}>Selecionar imagem</strong>
+              <span style={{ color: "#667085", fontSize: 12 }}>PNG ou JPG</span>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {/* Prévia do cabeçalho */}
+      <section style={{ background: "white", borderRadius: 18, border: "1px solid #e4e7ec", padding: 28 }}>
+        <h3 style={{ margin: "0 0 14px", fontSize: 18, color: "#1a1d2e" }}>Prévia do cabeçalho documental</h3>
+        <div style={{ border: "1px solid #d6dbe7", borderRadius: 14, padding: 20, background: "#fcfcfd" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "88px 1fr 88px", gap: 16, alignItems: "start" }}>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <AppLogo logoPath={form.logo_path} alt="Logo" size={72} radius={14} fallbackText="P" background="white" padding={4} />
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontWeight: 400, color: "#344054", fontSize: 15 }}>{form.diocese || "Nome da Diocese"}</div>
+              <div style={{ color: "#101828", fontSize: 19, fontWeight: 700, marginTop: 6 }}>{tituloParoquia.principal}</div>
+              {tituloParoquia.secundario && <div style={{ color: "#101828", fontSize: 17, fontWeight: 700, marginTop: 2 }}>{tituloParoquia.secundario}</div>}
+              <div style={{ color: "#667085", fontSize: 12, marginTop: 10, lineHeight: 1.6 }}>
+                {[form.endereco, [form.cep, form.cidade, form.estado].filter(Boolean).join(" · "), form.email, form.telefone, form.cnpj ? `CNPJ: ${form.cnpj}` : ""].filter(Boolean).join(" | ")}
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <AppLogo logoPath={form.diocese_logo_path} alt="Diocese" size={72} radius={14} fallbackText="D" background="white" padding={4} />
+            </div>
+          </div>
+        </div>
+        {erro && <p style={{ color: "#b42318", margin: "16px 0 0", fontSize: 13 }}>{erro}</p>}
+        {mensagem && <p style={{ color: "#027a48", margin: "16px 0 0", fontSize: 13 }}>{mensagem}</p>}
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+          <button onClick={salvar} disabled={salvando} style={{ background: "#374151", color: "white", border: "none", borderRadius: 10, padding: "12px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: salvando ? 0.7 : 1 }}>
+            {salvando ? "Salvando..." : "Salvar configurações"}
+          </button>
+        </div>
+      </section>
+      </>)}
+
+      {/* ── Configuração da Partilha ── */}
+      {abaAtiva === "partilha" && isParoco && (
+        <section style={{ background: "white", borderRadius: 18, border: "1px solid #e4e7ec", padding: 28 }}>
+          <h3 style={{ margin: "0 0 6px", fontSize: 18, color: "#1a1d2e" }}>⚖️ Distribuição da Partilha</h3>
+          <p style={{ margin: "0 0 20px", color: "#667085", fontSize: 14, lineHeight: 1.6 }}>
+            Define como o saldo final do caixa é distribuído entre os destinos. A soma deve ser exatamente <strong>100%</strong>.
+            Esses percentuais refletem as normas da sua diocese — somente o Pároco pode alterá-los.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 20 }}>
+            {([
+              ["Comunidade (%)", "comunidade", "#059669"],
+              ["Área Missionária (%)", "areaMissionaria", "#2563eb"],
+              ["Arquidiocese (%)", "arquidiocese", "#7c3aed"],
+              ["Fundo Missionário (%)", "fundoMissionario", "#b45309"],
+            ] as [string, keyof ConfigPartilha, string][]).map(([label, field, cor]) => (
+              <div key={field}>
+                <label style={{ ...labelStyle, color: cor }}>{label}</label>
+                <input
+                  type="number"
+                  min={0} max={100} step={0.1}
+                  value={partilha[field]}
+                  onChange={e => setPartilha(p => ({ ...p, [field]: parseFloat(e.target.value) || 0 }))}
+                  style={{ ...numInput, borderColor: cor, color: cor }}
+                />
+              </div>
+            ))}
+          </div>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 16, padding: "12px 16px",
+            borderRadius: 10, background: partilhaValida ? "#f0fdf4" : "#fff7ed",
+            border: `1px solid ${partilhaValida ? "#bbf7d0" : "#fed7aa"}`, marginBottom: 16,
+          }}>
+            <span style={{ fontWeight: 700, fontSize: 16, color: partilhaValida ? "#166534" : "#c2410c" }}>
+              Total: {totalPartilha.toFixed(1)}%
+            </span>
+            <span style={{ fontSize: 13, color: partilhaValida ? "#166534" : "#c2410c" }}>
+              {partilhaValida ? "✓ Soma válida" : "⚠ A soma deve ser 100%"}
+            </span>
+          </div>
+          <button onClick={gravarPartilha} disabled={salvandoPartilha || !partilhaValida} style={{ background: "#7c3aed", color: "white", border: "none", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: partilhaValida ? "pointer" : "not-allowed", opacity: (salvandoPartilha || !partilhaValida) ? 0.6 : 1 }}>
+            {salvandoPartilha ? "Salvando..." : "Salvar Distribuição"}
+          </button>
+        </section>
+      )}
+
+      {/* ── Gestão de Usuários ── */}
+      {abaAtiva === "usuarios" && isParoco && (
+        <section style={{ background: "white", borderRadius: 18, border: "1px solid #e4e7ec", padding: 28 }}>
+          <h3 style={{ margin: "0 0 6px", fontSize: 18, color: "#1a1d2e" }}>👥 Gestão de Usuários</h3>
+          <p style={{ margin: "0 0 20px", color: "#667085", fontSize: 14, lineHeight: 1.6 }}>
+            Crie e gerencie os acessos de Vigários, Secretários e Membros de Comunidade. Somente o Pároco pode realizar esta gestão.
+          </p>
+
+          {/* Formulário de criação */}
+          <form onSubmit={handleCriarUsuario} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28, padding: 20, background: "#f8fafc", borderRadius: 12, border: "1px solid #e4e7ec" }}>
+            <div>
+              <label style={labelStyle}>Nome Completo *</label>
+              <input style={inputStyle} value={novoUsuario.nome} onChange={e => setNovoUsuario(p => ({ ...p, nome: e.target.value }))} placeholder="Nome do usuário" />
+            </div>
+            <div>
+              <label style={labelStyle}>Login *</label>
+              <input style={inputStyle} value={novoUsuario.login} onChange={e => setNovoUsuario(p => ({ ...p, login: e.target.value }))} placeholder="nome.sobrenome" />
+            </div>
+            <div>
+              <label style={labelStyle}>Senha *</label>
+              <input type="password" style={inputStyle} value={novoUsuario.senha} onChange={e => setNovoUsuario(p => ({ ...p, senha: e.target.value }))} placeholder="Senha inicial" />
+            </div>
+            <div>
+              <label style={labelStyle}>Papel *</label>
+              <select style={inputStyle} value={novoUsuario.papel} onChange={e => setNovoUsuario(p => ({ ...p, papel: e.target.value as PapelUsuario, comunidade_id: "" }))}>
+                <option value="admin">Administrador</option>
+                <option value="paroquia">Pároco</option>
+                <option value="vigario">Vigário</option>
+                <option value="secretaria">Secretária(o)</option>
+                <option value="membro">Membro de Comunidade</option>
+              </select>
+            </div>
+            {novoUsuario.papel === 'membro' && (
+              <div>
+                <label style={labelStyle}>Comunidade *</label>
+                <select style={inputStyle} value={novoUsuario.comunidade_id} onChange={e => setNovoUsuario(p => ({ ...p, comunidade_id: e.target.value }))}>
+                  <option value="">Selecione...</option>
+                  {comunidades.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "flex-end" }}>
+              <button type="submit" disabled={criandoUsuario} style={{ background: "#1d4ed8", color: "white", border: "none", borderRadius: 10, padding: "12px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", width: "100%", opacity: criandoUsuario ? 0.7 : 1 }}>
+                {criandoUsuario ? "Criando..." : "+ Criar Usuário"}
+              </button>
+            </div>
+          </form>
+
+          {/* Lista de usuários */}
+          <div style={{ borderRadius: 12, border: "1px solid #e4e7ec", overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f8fafc" }}>
+                  {["Nome", "Login", "Papel", "Comunidade", "Ação"].map(h => (
+                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 12, color: "#667085", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {usuarios.map(u => (
+                  <tr key={u.id} style={{ borderTop: "1px solid #f0f0f0" }}>
+                    <td style={{ padding: "12px 16px", fontWeight: 600, fontSize: 14 }}>
+                      {u.nome}
+                      {u.id === usuario.id && <span style={{ marginLeft: 6, fontSize: 11, background: "#dbeafe", color: "#1d4ed8", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>Você</span>}
+                    </td>
+                    <td style={{ padding: "12px 16px", fontSize: 13, color: "#667085" }}>{u.login}</td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <span style={{
+                        padding: "3px 8px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                        background: u.papel === 'admin' ? "#fef3c7" : u.papel === 'paroquia' ? "#ede9fe" : u.papel === 'membro' ? "#d1fae5" : "#dbeafe",
+                        color:      u.papel === 'admin' ? "#92400e" : u.papel === 'paroquia' ? "#5b21b6" : u.papel === 'membro' ? "#065f46" : "#1d4ed8",
+                      }}>
+                        {LABEL_PAPEL[u.papel as keyof typeof LABEL_PAPEL] ?? u.papel}
+                      </span>
+                    </td>
+                    <td style={{ padding: "12px 16px", fontSize: 13, color: "#667085" }}>{u.comunidade_nome ?? "—"}</td>
+                    <td style={{ padding: "12px 16px" }}>
+                      {u.id !== usuario.id && (
+                        <button onClick={() => setIdExcluirUsuario(u.id)} style={{ color: "#dc2626", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+                          Remover
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
