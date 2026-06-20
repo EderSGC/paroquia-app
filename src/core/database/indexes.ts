@@ -105,6 +105,9 @@ export async function createIndexes(db: Database): Promise<void> {
     { table: "catequese_presencas",   name: "idx_presenc_encontro_id",   cols: "encontro_id" },
     { table: "catequese_encontros",   name: "idx_encontros_turma_id",    cols: "turma_id" },
     { table: "catequese_encontros",   name: "idx_encontros_data",        cols: "data" },
+    // ── observacoes_pastorais ────────────────────────────────────────────
+    { table: "observacoes_pastorais", name: "idx_obs_fiel_id",          cols: "fiel_id" },
+    { table: "observacoes_pastorais", name: "idx_obs_created",          cols: "created_at" },
     // ── deleted_at (soft-delete) ──────────────────────────────────────────
     { table: "fieis",                 name: "idx_fieis_deleted",         cols: "deleted_at" },
     { table: "comunidades",           name: "idx_comunidades_deleted",   cols: "deleted_at" },

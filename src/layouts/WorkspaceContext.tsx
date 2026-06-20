@@ -6,7 +6,8 @@ export type ModuleId =
   | "pastorais" | "catequese"
   | "batismo" | "eucaristia" | "crisma" | "matrimonio" | "uncao" | "obitos"
   | "financeiro" | "patrimonio"
-  | "documentos" | "config";
+  | "documentos" | "config"
+  | "ficha";
 
 export type SelectedItem =
   | {

@@ -229,7 +229,7 @@ function FielDetail({ item }: { item: FielItem }) {
       {/* ── ABRIR FICHA COMPLETA ── */}
       <div style={{ marginTop: 12, paddingBottom: 2 }}>
         <button
-          onClick={() => navigate("fieis")}
+          onClick={() => navigate("ficha" as any, String(item.id))}
           style={{
             width: "100%", padding: "11px 16px",
             background: "var(--accent)", color: "#fff",

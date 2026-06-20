@@ -31,6 +31,7 @@ import { CatequeseModule } from "@/modules/catequese/CatequeseModule";
 import { PatrimonioPage } from "@/modules/patrimonio/pages/PatrimonioPage";
 import { SystemConfigPage } from "@/modules/shell/pages/SystemConfigPage";
 import { SobrePage } from "@/modules/shell/pages/SobrePage";
+import { FichaDoFielPage } from "@/modules/pastoral/pages/FichaDoFielPage";
 
 interface Props {
   paroquia: Paroquia;
@@ -113,6 +114,17 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
       );
     }
 
+    if (mod === "ficha" && subPage) {
+      const fichaId = Number(subPage);
+      return (
+        <FichaDoFielPage
+          fielId={fichaId}
+          usuarioNome={usuario.nome}
+          onVoltar={() => navigate("fieis")}
+          onNavFiel={(id) => navigate("ficha" as any, String(id))}
+        />
+      );
+    }
     if (mod === "dashboard")  return <DashboardV2 paroquia={paroquia} usuario={usuario} />;
     if (mod === "config")     return <SystemConfigPage paroquia={paroquia} usuario={usuario} onParoquiaUpdated={onParoquiaUpdate} />;
     if (mod === "documentos") return <DocumentosPage paroquia={paroquia} abaPadrao={subPage} />;
@@ -168,6 +180,7 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
       patrimonio: "Patrimônio",
       agenda:     "Agenda",
       documentos: "Documentos",
+      ficha: "Ficha do Fiel",
     };
     return titles[activeModule] ?? "Visão Geral";
   }
@@ -180,6 +193,7 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
     if (mod === "catequese")   return <CatequesePanel />;
     if (SACRAMENTAL_MODS[mod]) return <SacramentalPanel />;
     if (PASTORAL_ABAS[mod])    return <PastoralPanel />;
+    if (mod === "ficha")       return <PastoralPanel />;
     if (mod === "agenda")      return <AgendaPanel />;
     if (mod === "patrimonio")  return <PatrimonioPanel />;
     if (mod === "configuracoes") return <ConfiguracoesPanel />;

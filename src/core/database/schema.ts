@@ -550,4 +550,21 @@ export const EXPECTED_SCHEMA: TableSchema[] = [
       { name: "created_at",  type: "DATETIME", default: "CURRENT_TIMESTAMP" },
     ],
   },
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // OBSERVAÇÕES PASTORAIS
+  // ────────────────────────────────────────────────────────────────────────────
+  {
+    name: "observacoes_pastorais",
+    columns: [
+      { name: "id",          type: "INTEGER PRIMARY KEY AUTOINCREMENT" },
+      { name: "fiel_id",     type: "INTEGER", notNull: true },
+      { name: "autor",       type: "TEXT" },
+      { name: "tipo",        type: "TEXT", default: "'GERAL'" },
+      { name: "texto",       type: "TEXT", notNull: true },
+      { name: "uuid",        type: "TEXT" },
+      { name: "created_at",  type: "DATETIME", default: "CURRENT_TIMESTAMP" },
+      { name: "updated_at",  type: "DATETIME", default: "CURRENT_TIMESTAMP" },
+    ],
+  },
 ];
