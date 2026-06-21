@@ -25,6 +25,7 @@ export type Modulo =
   | "patrimonio"
   | "agenda"
   | "documentos"
+  | "config"
   | "configuracoes"
   | "auditoria";
 
@@ -47,7 +48,7 @@ function allModules(acoes: Acao[]): ModuloPermissoes {
   const mods: Modulo[] = [
     "dashboard", "fieis", "familias", "comunidades", "grupos", "pastorais",
     "catequese", "sacramentos", "financeiro", "patrimonio", "agenda",
-    "documentos", "configuracoes", "auditoria",
+    "documentos", "config", "configuracoes", "auditoria",
   ];
   for (const m of mods) result[m] = set;
   return result;
@@ -78,6 +79,7 @@ const PERMISSOES: Record<PapelUsuario, ModuloPermissoes> = {
     patrimonio: fromArray(CRUD),
     agenda: fromArray(CRUD),
     documentos: fromArray(CRUD_DOC_REP),
+    config: s("visualizar"),
     configuracoes: s("visualizar"),
     auditoria: s("visualizar"),
   },
@@ -167,6 +169,7 @@ export const LABEL_MODULO: Record<Modulo, string> = {
   patrimonio: "Patrimônio",
   agenda: "Agenda",
   documentos: "Documentos",
+  config: "Configurações",
   configuracoes: "Configurações",
   auditoria: "Auditoria",
 };

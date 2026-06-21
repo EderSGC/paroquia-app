@@ -7,6 +7,7 @@ describe("hasPermission", () => {
     expect(hasPermission("admin", "financeiro", "acessar_financeiro")).toBe(true);
     expect(hasPermission("admin", "configuracoes", "restaurar_backup")).toBe(true);
     expect(hasPermission("admin", "configuracoes", "gerenciar_usuarios")).toBe(true);
+    expect(hasPermission("admin", "config", "gerenciar_usuarios")).toBe(true);
   });
 
   it("pároco tem acesso total", () => {
@@ -60,6 +61,7 @@ describe("canAccessModule", () => {
 
   it("membro não acessa configurações", () => {
     expect(canAccessModule("membro", "configuracoes")).toBe(false);
+    expect(canAccessModule("membro", "config")).toBe(false);
     expect(canAccessModule("membro", "auditoria")).toBe(false);
   });
 
@@ -84,9 +86,9 @@ describe("getPermissions", () => {
 });
 
 describe("getAllModulesForPapel", () => {
-  it("admin tem acesso a todos os 14 módulos", () => {
+  it("admin tem acesso a todos os módulos", () => {
     const mods = getAllModulesForPapel("admin");
-    expect(mods.length).toBe(14);
+    expect(mods.length).toBe(15);
   });
 
   it("membro tem acesso limitado", () => {
