@@ -124,11 +124,9 @@ export function LoginScreen({ paroquia, onLogin }: LoginScreenProps) {
     setMensagem("");
 
     try {
-      console.log("Tentando redefinir senha para:", loginVal);
       const redefiniu = await redefinirSenha(loginVal, nomeRecuperacao, novaSenha);
 
       if (!redefiniu) {
-        console.warn("Redefinição falhou: dados não encontrados");
         setErro("Não encontramos cadastro com esse login e esse nome completo.");
         return;
       }
