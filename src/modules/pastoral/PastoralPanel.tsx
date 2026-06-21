@@ -10,13 +10,19 @@ interface Stats {
   totalComunidades: number;
   novosEsseMes: number;
   aniversariantesHoje: { nome: string }[];
+  nomeComunidade: string | null;
 }
 
-const empty: Stats = { totalFieis: 0, dizimistas: 0, totalFamilias: 0, totalComunidades: 0, novosEsseMes: 0, aniversariantesHoje: [] };
+const empty: Stats = { totalFieis: 0, dizimistas: 0, totalFamilias: 0, totalComunidades: 0, novosEsseMes: 0, aniversariantesHoje: [], nomeComunidade: null };
 
-export function PastoralPanel() {
+interface PastoralPanelProps {
+  comunidadeNome?: string | null;
+}
+
+export function PastoralPanel({ comunidadeNome = null }: PastoralPanelProps) {
   const [data, setData] = useState<Stats>(empty);
   const { navigate } = useWorkspace();
+  const filtrado = comunidadeNome != null;
 
   useEffect(() => {
     let cancelled = false;
@@ -31,31 +37,47 @@ export function PastoralPanel() {
         const anoMes = hoje.toISOString().slice(0, 7);
         const mmdd = String(hoje.getMonth() + 1).padStart(2, "0") + "-" + String(hoje.getDate()).padStart(2, "0");
 
-        const [totalFieis, dizimistas, totalFamilias, totalComunidades, novosEsseMes] = await Promise.all([
-          n("SELECT COUNT(*) as n FROM fieis WHERE deleted_at IS NULL"),
-          n("SELECT COUNT(*) as n FROM fieis WHERE deleted_at IS NULL AND isDizimista=1"),
-          n("SELECT COUNT(*) as n FROM familias WHERE deleted_at IS NULL"),
-          n("SELECT COUNT(*) as n FROM comunidades WHERE deleted_at IS NULL"),
-          n("SELECT COUNT(*) as n FROM fieis WHERE deleted_at IS NULL AND substr(created_at,1,7)=?", [anoMes]),
-        ]);
+        let totalFieis: number, dizimistas: number, totalFamilias: number, totalComunidades: number, novosEsseMes: number;
+        let anivs: { nome: string }[];
 
-        const anivs = await db.select<{ nome: string }[]>(
-          "SELECT nome FROM fieis WHERE deleted_at IS NULL AND substr(COALESCE(data_nascimento,''),6,5)=? LIMIT 4",
-          [mmdd]
-        );
+        if (filtrado) {
+          [totalFieis, dizimistas, totalFamilias, totalComunidades, novosEsseMes] = await Promise.all([
+            n("SELECT COUNT(*) as n FROM fieis WHERE deleted_at IS NULL AND comunidade=?", [comunidadeNome]),
+            n("SELECT COUNT(*) as n FROM fieis WHERE deleted_at IS NULL AND isDizimista=1 AND comunidade=?", [comunidadeNome]),
+            n("SELECT COUNT(*) as n FROM familias WHERE deleted_at IS NULL AND comunidade=?", [comunidadeNome]),
+            n("SELECT 1 as n"),
+            n("SELECT COUNT(*) as n FROM fieis WHERE deleted_at IS NULL AND comunidade=? AND substr(created_at,1,7)=?", [comunidadeNome, anoMes]),
+          ]);
+          anivs = await db.select<{ nome: string }[]>(
+            "SELECT nome FROM fieis WHERE deleted_at IS NULL AND comunidade=? AND substr(COALESCE(data_nascimento,''),6,5)=? LIMIT 4",
+            [comunidadeNome, mmdd]
+          );
+        } else {
+          [totalFieis, dizimistas, totalFamilias, totalComunidades, novosEsseMes] = await Promise.all([
+            n("SELECT COUNT(*) as n FROM fieis WHERE deleted_at IS NULL"),
+            n("SELECT COUNT(*) as n FROM fieis WHERE deleted_at IS NULL AND isDizimista=1"),
+            n("SELECT COUNT(*) as n FROM familias WHERE deleted_at IS NULL"),
+            n("SELECT COUNT(*) as n FROM comunidades WHERE deleted_at IS NULL"),
+            n("SELECT COUNT(*) as n FROM fieis WHERE deleted_at IS NULL AND substr(created_at,1,7)=?", [anoMes]),
+          ]);
+          anivs = await db.select<{ nome: string }[]>(
+            "SELECT nome FROM fieis WHERE deleted_at IS NULL AND substr(COALESCE(data_nascimento,''),6,5)=? LIMIT 4",
+            [mmdd]
+          );
+        }
 
         if (cancelled) return;
-        setData({ totalFieis, dizimistas, totalFamilias, totalComunidades, novosEsseMes, aniversariantesHoje: anivs });
+        setData({ totalFieis, dizimistas, totalFamilias, totalComunidades, novosEsseMes, aniversariantesHoje: anivs, nomeComunidade: comunidadeNome });
       } catch (e) {
         console.error("PastoralPanel:", e);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [comunidadeNome, filtrado]);
 
   return (
     <>
-      <PanelSection title="Comunidade">
+      <PanelSection title={filtrado ? data.nomeComunidade ?? "Comunidade" : "Comunidade"}>
         <div style={{
           borderRadius: 10,
           background: "rgba(0,122,255,0.07)",
@@ -78,7 +100,7 @@ export function PastoralPanel() {
 
       <PanelSection title="Dados Pastorais">
         <PanelRow label="Famílias" value={data.totalFamilias.toLocaleString("pt-BR")} />
-        <PanelRow label="Comunidades" value={data.totalComunidades} />
+        {!filtrado && <PanelRow label="Comunidades" value={data.totalComunidades} />}
         <PanelRow label="Dizimistas" value={data.dizimistas.toLocaleString("pt-BR")} valueColor="var(--accent-orange)" />
       </PanelSection>
 

@@ -188,10 +188,10 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
     if (selectedItem) return <ItemDetailPanel />;
     if (mod === "dashboard")   return <DashboardPanel />;
     if (mod === "financeiro")  return <FinanceiroPanel />;
-    if (mod === "catequese")   return <CatequesePanel />;
+    if (mod === "catequese")   return <CatequesePanel comunidadeNome={comunidadeNome} />;
     if (SACRAMENTAL_MODS[mod]) return <SacramentalPanel />;
-    if (PASTORAL_ABAS[mod])    return <PastoralPanel />;
-    if (mod === "ficha")       return <PastoralPanel />;
+    if (PASTORAL_ABAS[mod])    return <PastoralPanel comunidadeNome={comunidadeNome} />;
+    if (mod === "ficha")       return <PastoralPanel comunidadeNome={comunidadeNome} />;
     if (mod === "agenda")      return <AgendaPanel />;
     if (mod === "patrimonio")  return <PatrimonioPanel />;
     if (mod === "configuracoes") return <ConfiguracoesPanel />;

@@ -14,8 +14,13 @@ interface Stats {
 
 const empty: Stats = { matriculasAtivas: 0, turmasAtivas: 0, concluidos: 0, cancelados: 0, catEucaristia: 0, catCrisma: 0 };
 
-export function CatequesePanel() {
+interface CatequesePanelProps {
+  comunidadeNome?: string | null;
+}
+
+export function CatequesePanel({ comunidadeNome = null }: CatequesePanelProps) {
   const [data, setData] = useState<Stats>(empty);
+  const filtrado = comunidadeNome != null;
 
   useEffect(() => {
     let cancelled = false;
@@ -27,14 +32,28 @@ export function CatequesePanel() {
           return r[0]?.n ?? 0;
         };
 
-        const [matriculasAtivas, turmasAtivas, concluidos, cancelados, catEucaristia, catCrisma] = await Promise.all([
-          n("SELECT COUNT(*) as n FROM catequese_matriculas WHERE situacao NOT IN ('CONCLUIDO','CANCELADO')"),
-          n("SELECT COUNT(DISTINCT turma_id) as n FROM catequese_matriculas WHERE situacao NOT IN ('CONCLUIDO','CANCELADO')"),
-          n("SELECT COUNT(*) as n FROM catequese_matriculas WHERE situacao='CONCLUIDO'"),
-          n("SELECT COUNT(*) as n FROM catequese_matriculas WHERE situacao='CANCELADO'"),
-          n("SELECT COUNT(*) as n FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Eucaristia%'"),
-          n("SELECT COUNT(*) as n FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Crisma%'"),
-        ]);
+        let matriculasAtivas: number, turmasAtivas: number, concluidos: number, cancelados: number, catEucaristia: number, catCrisma: number;
+
+        if (filtrado) {
+          const joinCom = "JOIN catequese_turmas t ON t.id=m.turma_id AND t.comunidade=?";
+          [matriculasAtivas, turmasAtivas, concluidos, cancelados, catEucaristia, catCrisma] = await Promise.all([
+            n(`SELECT COUNT(*) as n FROM catequese_matriculas m ${joinCom} WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO')`, [comunidadeNome]),
+            n(`SELECT COUNT(DISTINCT m.turma_id) as n FROM catequese_matriculas m ${joinCom} WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO')`, [comunidadeNome]),
+            n(`SELECT COUNT(*) as n FROM catequese_matriculas m ${joinCom} WHERE m.situacao='CONCLUIDO'`, [comunidadeNome]),
+            n(`SELECT COUNT(*) as n FROM catequese_matriculas m ${joinCom} WHERE m.situacao='CANCELADO'`, [comunidadeNome]),
+            n(`SELECT COUNT(*) as n FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Eucaristia%' AND t.comunidade=?`, [comunidadeNome]),
+            n(`SELECT COUNT(*) as n FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Crisma%' AND t.comunidade=?`, [comunidadeNome]),
+          ]);
+        } else {
+          [matriculasAtivas, turmasAtivas, concluidos, cancelados, catEucaristia, catCrisma] = await Promise.all([
+            n("SELECT COUNT(*) as n FROM catequese_matriculas WHERE situacao NOT IN ('CONCLUIDO','CANCELADO')"),
+            n("SELECT COUNT(DISTINCT turma_id) as n FROM catequese_matriculas WHERE situacao NOT IN ('CONCLUIDO','CANCELADO')"),
+            n("SELECT COUNT(*) as n FROM catequese_matriculas WHERE situacao='CONCLUIDO'"),
+            n("SELECT COUNT(*) as n FROM catequese_matriculas WHERE situacao='CANCELADO'"),
+            n("SELECT COUNT(*) as n FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Eucaristia%'"),
+            n("SELECT COUNT(*) as n FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Crisma%'"),
+          ]);
+        }
 
         if (cancelled) return;
         setData({ matriculasAtivas, turmasAtivas, concluidos, cancelados, catEucaristia, catCrisma });
@@ -43,7 +62,7 @@ export function CatequesePanel() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [comunidadeNome, filtrado]);
 
   const presencaMedia = 75;
 

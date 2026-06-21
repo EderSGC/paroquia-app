@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useFinanceiro } from '../hooks/useFinanceiro';
 import type { Lancamento } from '../services';
 import type { Usuario, Paroquia } from '../../../core/types/app.types';
-import { PAPEIS_ACESSO_TOTAL } from '../../../core/types/app.types';
+import { hasPermission } from '@core/auth/permissions';
 import type { ConfiguracaoPartilha } from '../../../core/types/entities';
 import { getDb } from '@core/database';
 import { FinanceiroRepository } from '../repository/financeiro.repository';
@@ -35,7 +35,7 @@ const lbl: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 7
 const card: React.CSSProperties = { background: 'white', borderRadius: 14, border: '1px solid #e4e7ec', padding: 20 };
 
 export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
-  const isMembro = usuario ? !PAPEIS_ACESSO_TOTAL.includes(usuario.papel) : false;
+  const isMembro = usuario ? !hasPermission(usuario.papel, "financeiro", "acessar_configuracoes") : false;
   const comunidadeNomeFiltro = isMembro ? (usuario?.comunidade_nome ?? null) : null;
 
   const {
@@ -112,6 +112,7 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
   const [saldoAnterior, setSaldoAnterior] = useState('');
   const [obsConf, setObsConf]         = useState('');
   const [confSalva, setConfSalva]     = useState(false);
+  const [saldoAnteriorBloqueado, setSaldoAnteriorBloqueado] = useState(false);
 
   // Histórico
   const [periodoInicio, setPeriodoInicio] = useState(hoje().slice(0,7) + '-01');
@@ -200,6 +201,7 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
       );
       if (fechDisp.length > 0) {
         setSaldoAnterior(String(Number(fechDisp[0].saldo_disponivel)));
+        setSaldoAnteriorBloqueado(true);
         return;
       }
 
@@ -212,6 +214,7 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
       const saldoFinalMesAnt = await calcSaldoFinalMes(mesAnt);
       if (saldoFinalMesAnt > 0) {
         setSaldoAnterior(String(saldoFinalMesAnt));
+        setSaldoAnteriorBloqueado(true);
         return;
       }
 
@@ -222,6 +225,7 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
       );
       if (fechQualquer.length > 0) {
         setSaldoAnterior(String(Number(fechQualquer[0].saldo_anterior)));
+        setSaldoAnteriorBloqueado(true);
         return;
       }
 
@@ -232,11 +236,13 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
       );
       if (fechMesAtual.length > 0) {
         setSaldoAnterior(String(Number(fechMesAtual[0].saldo_anterior)));
+        setSaldoAnteriorBloqueado(true);
         return;
       }
 
       setSaldoAnterior('0');
-    } catch (err) { console.error('[carregarConferencia] erro:', err); setSaldoAnterior('0'); }
+      setSaldoAnteriorBloqueado(false);
+    } catch (err) { console.error('[carregarConferencia] erro:', err); setSaldoAnterior('0'); setSaldoAnteriorBloqueado(false); }
   }, [dataSel, dataSelFim, unidade, buscarFechamento]);
 
   useEffect(() => { carregarConferencia(); }, [carregarConferencia]);
@@ -711,13 +717,14 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
               </div>
             ))}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f2f4f7', fontSize: 13, gap: 12 }}>
-              <span style={{ color: '#667085', whiteSpace: 'nowrap' }}>Saldo Anterior Conciliado</span>
+              <span style={{ color: '#667085', whiteSpace: 'nowrap' }}>Saldo Anterior Conciliado {saldoAnteriorBloqueado && <span title="Valor calculado automaticamente. Não pode ser alterado após o primeiro lançamento." style={{ cursor: 'help' }}>🔒</span>}</span>
               <input
                 type="number"
                 step="0.01"
                 value={saldoAnterior}
-                onChange={e => { setSaldoAnterior(e.target.value); setConfSalva(false); }}
-                style={{ ...inp, width: 130, textAlign: 'right', fontWeight: 700, color: '#344054', padding: '5px 8px', fontSize: 13 }}
+                onChange={e => { if (!saldoAnteriorBloqueado) { setSaldoAnterior(e.target.value); setConfSalva(false); } }}
+                readOnly={saldoAnteriorBloqueado}
+                style={{ ...inp, width: 130, textAlign: 'right', fontWeight: 700, color: saldoAnteriorBloqueado ? '#98a2b3' : '#344054', padding: '5px 8px', fontSize: 13, background: saldoAnteriorBloqueado ? '#f9fafb' : undefined, cursor: saldoAnteriorBloqueado ? 'not-allowed' : undefined }}
                 placeholder="0,00"
               />
             </div>
@@ -769,8 +776,8 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
                 </div>
               </div>
               <div>
-                <label style={lbl}>Saldo Anterior Conciliado R$</label>
-                <input style={inp} type="number" step="0.01" value={saldoAnterior} onChange={e => { setSaldoAnterior(e.target.value); setConfSalva(false); }} placeholder="0,00" />
+                <label style={lbl}>Saldo Anterior Conciliado R$ {saldoAnteriorBloqueado && <span title="Bloqueado — valor já conciliado" style={{ cursor: 'help' }}>🔒</span>}</label>
+                <input style={{ ...inp, background: saldoAnteriorBloqueado ? '#f9fafb' : undefined, color: saldoAnteriorBloqueado ? '#98a2b3' : undefined, cursor: saldoAnteriorBloqueado ? 'not-allowed' : undefined }} type="number" step="0.01" value={saldoAnterior} onChange={e => { if (!saldoAnteriorBloqueado) { setSaldoAnterior(e.target.value); setConfSalva(false); } }} readOnly={saldoAnteriorBloqueado} placeholder="0,00" />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '8px 12px', background: '#f9fafb', borderRadius: 8 }}>
                 <span style={{ color: '#667085' }}>Total Conferido</span>
