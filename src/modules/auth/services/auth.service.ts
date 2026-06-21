@@ -213,13 +213,13 @@ export async function finalizarSetup(arg1: SetupInput, arg2?: SetupInput): Promi
     if (usuarioExistente.length > 0) {
       await db.execute(
         "UPDATE usuarios SET nome=?,senha=?,nivel=?,papel=? WHERE id=?",
-        [uNome, uSenha, "admin", "paroquia", usuarioExistente[0].id]
+        [uNome, uSenha, "admin", "admin", usuarioExistente[0].id]
       );
     } else {
       try {
         await db.execute(
           "INSERT INTO usuarios (nome,login,senha,nivel,papel) VALUES (?,?,?,?,?)",
-          [uNome, uLogin, uSenha, "admin", "paroquia"]
+          [uNome, uLogin, uSenha, "admin", "admin"]
         );
       } catch {
         await db.execute(
