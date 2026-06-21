@@ -169,13 +169,18 @@ export function FichaDoFielPage({ fielId, usuarioNome, onVoltar, onNavFiel }: Pr
 
   useEffect(() => { carregar(); }, [carregar]);
 
+  const [obsErro, setObsErro] = useState<string | null>(null);
+
   async function salvarObservacao() {
     if (!obsTexto.trim() || salvando) return;
     setSalvando(true);
+    setObsErro(null);
     try {
       await FielProfileService.adicionarObservacao(fielId, obsTexto.trim(), usuarioNome ?? "Sistema");
       setObsTexto("");
       await carregar();
+    } catch (e) {
+      setObsErro((e as Error).message);
     } finally {
       setSalvando(false);
     }
@@ -416,6 +421,7 @@ export function FichaDoFielPage({ fielId, usuarioNome, onVoltar, onNavFiel }: Pr
             {salvando ? "..." : "Salvar"}
           </button>
         </div>
+        {obsErro && <div style={{ fontSize: 11, color: "var(--accent-red)", marginBottom: 8 }}>Erro: {obsErro}</div>}
 
         {observacoes.length === 0 ? (
           <div style={S.empty}>Nenhuma observação registrada.</div>

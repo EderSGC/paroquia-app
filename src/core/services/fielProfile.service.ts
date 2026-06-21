@@ -57,6 +57,7 @@ export interface FielPastoral {
   nome: string;
   cargo: string | null;
   tipo: "pastoral" | "grupo";
+  vinculado_em?: string | null;
 }
 
 export interface FielFamilia {
@@ -134,7 +135,7 @@ export const FielProfileService = {
     ] = await Promise.all([
       // Sacramentos
       db.select<FielSacramento[]>(
-        'SELECT id, tipo, data_sacramento, celebrante, comunidade, livro, folha, assento FROM sacramentos_registros WHERE fiel_id = $1 AND deleted_at IS NULL ORDER BY data_sacramento ASC',
+        'SELECT id, tipo, data_sacramento, celebrante, comunidade, livro, folha, assento FROM sacramentos_registros WHERE fiel_id = $1 AND deleted_at IS NULL ORDER BY data_sacramento ASC LIMIT 100',
         [fielId]
       ).catch(() => [] as FielSacramento[]),
 
@@ -164,8 +165,8 @@ export const FielProfileService = {
       ).catch(() => []),
 
       // Grupos (via grupo_membros)
-      db.select<{ id: number; nome: string; cargo: string | null }[]>(
-        `SELECT g.id, g.nome, gm.cargo
+      db.select<{ id: number; nome: string; cargo: string | null; vinculado_em: string | null }[]>(
+        `SELECT g.id, g.nome, gm.cargo, gm.created_at as vinculado_em
          FROM grupo_membros gm
          JOIN grupos g ON g.id = gm.grupo_id
          WHERE gm.fiel_id = $1 AND g.deleted_at IS NULL
@@ -228,8 +229,8 @@ export const FielProfileService = {
 
     // 3. Montar pastorais unificadas
     const pastorais: FielPastoral[] = [
-      ...pastoraisData.map(p => ({ ...p, tipo: "pastoral" as const })),
-      ...gruposData.map(g => ({ ...g, tipo: "grupo" as const })),
+      ...pastoraisData.map(p => ({ ...p, tipo: "pastoral" as const, vinculado_em: null })),
+      ...gruposData.map(g => ({ id: g.id, nome: g.nome, cargo: g.cargo, tipo: "grupo" as const, vinculado_em: g.vinculado_em ?? null })),
     ];
 
     // 4. Montar família com membros
@@ -332,8 +333,10 @@ export const FielProfileService = {
     }
 
     for (const p of pastorais) {
+      const dataVinculo = p.vinculado_em?.slice(0, 10) || fiel.created_at?.slice(0, 10) || "";
+      if (!dataVinculo) continue;
       events.push({
-        data: fiel.created_at?.slice(0, 10) ?? "",
+        data: dataVinculo,
         tipo: p.tipo === "pastoral" ? "Pastoral" : "Grupo",
         descricao: `${p.nome}${p.cargo ? ` — ${p.cargo}` : ""}`,
         icone: "users", cor: "#34C759", modulo: "pastoral",
@@ -364,15 +367,19 @@ export const FielProfileService = {
   },
 
   async adicionarObservacao(fielId: number, texto: string, autor: string, tipo = "GERAL"): Promise<void> {
+    const textoLimpo = texto?.trim();
+    if (!textoLimpo) throw new Error("Texto da observação não pode ser vazio");
+    if (!fielId || fielId <= 0) throw new Error("fiel_id inválido");
     const db = await getDb();
     await db.execute(
       'INSERT INTO observacoes_pastorais (fiel_id, autor, tipo, texto) VALUES ($1, $2, $3, $4)',
-      [fielId, autor, tipo, texto]
+      [fielId, autor || "Sistema", tipo, textoLimpo]
     );
   },
 
-  async removerObservacao(id: number): Promise<void> {
+  async removerObservacao(id: number, fielId: number): Promise<void> {
+    if (!id || !fielId) throw new Error("id e fiel_id são obrigatórios");
     const db = await getDb();
-    await db.execute('DELETE FROM observacoes_pastorais WHERE id = $1', [id]);
+    await db.execute('DELETE FROM observacoes_pastorais WHERE id = $1 AND fiel_id = $2', [id, fielId]);
   },
 };
