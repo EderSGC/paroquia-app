@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { ToastProvider } from "./core/ui/Toast";
 
 import { getParoquiaAtual, registrarLogout } from "./modules/auth/services/auth.service";
+import { iniciarBackupAutomatico } from "./core/services/backup.service";
 import { garantirPastaDocumentos } from "./core/utils/pdfGenerator";
 import { SECURITY } from "./core/config/constants";
 import { setCurrentUserId } from "./core/repository/BaseRepository";
@@ -112,6 +113,7 @@ export default function App() {
   ) => {
     setUsuario(usuarioAtual);
     setCurrentUserId(usuarioAtual.id);
+    iniciarBackupAutomatico();
     setTela("app");
   };
 
