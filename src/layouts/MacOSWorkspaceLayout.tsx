@@ -5,7 +5,7 @@ import { useToast } from "@core/ui/Toast";
 import { fazerBackup, restaurarBackup } from "@core/services/backup.service";
 
 import type { Paroquia, Usuario } from "@core/types/app.types";
-import { PAPEIS_ACESSO_TOTAL, MODULOS_POR_PAPEL } from "@core/types/app.types";
+import { canAccessModule, hasPermission } from "@core/auth/permissions";
 
 import { WorkspaceProvider, useWorkspace, type ModuleId } from "./WorkspaceContext";
 import { ItemDetailPanel } from "@/components/ui/ItemDetailPanel";
@@ -60,10 +60,8 @@ const SACRAMENTAL_MODS: Record<string, string> = {
 };
 
 function canAccess(papel: string, mod: string): boolean {
-  const restritos = MODULOS_POR_PAPEL[papel as keyof typeof MODULOS_POR_PAPEL];
-  if (!restritos || restritos.length === 0) return true;
   const base = SACRAMENTAL_MODS[mod] ? "sacramentos" : mod;
-  return restritos.includes(base);
+  return canAccessModule(papel as any, base);
 }
 
 /* ─── Inner layout (needs WorkspaceContext) ────────────────────────────── */
@@ -271,7 +269,7 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
 
 /* ─── Public entry — wraps with WorkspaceProvider ──────────────────────── */
 export function MacOSWorkspaceLayout({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props) {
-  const isAdmin = PAPEIS_ACESSO_TOTAL.includes(usuario.papel);
+  const isAdmin = hasPermission(usuario.papel, "configuracoes", "gerenciar_usuarios");
   const initialModule = isAdmin ? "dashboard" : "pastorais";
 
   return (

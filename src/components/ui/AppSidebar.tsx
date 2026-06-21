@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import { AppLogo } from "@core/ui/AppLogo";
 import type { Paroquia, Usuario, PapelUsuario } from "@core/types/app.types";
-import { PAPEIS_ACESSO_TOTAL, LABEL_PAPEL, MODULOS_POR_PAPEL } from "@core/types/app.types";
+import { LABEL_PAPEL } from "@core/types/app.types";
+import { canAccessModule, hasPermission } from "@core/auth/permissions";
 import { useWorkspace, type ModuleId } from "@/layouts/WorkspaceContext";
 
 interface NavItem {
@@ -88,7 +89,7 @@ interface Props {
 
 export function AppSidebar({ paroquia, usuario, isDark, onLogout, onToggleTheme }: Props) {
   const { activeModule, subPage, navigate } = useWorkspace();
-  const isAdmin = PAPEIS_ACESSO_TOTAL.includes(usuario.papel);
+  const isAdmin = hasPermission(usuario.papel, "configuracoes", "gerenciar_usuarios");
   const [expandedGroup, setExpandedGroup] = useState<"catequese" | "documentos" | null>(null);
 
   const isCatequeseOpen = activeModule === "catequese" && expandedGroup === "catequese";
@@ -109,10 +110,8 @@ export function AppSidebar({ paroquia, usuario, isDark, onLogout, onToggleTheme 
   }
 
   function canAccess(id: string): boolean {
-    const restritos = MODULOS_POR_PAPEL[usuario.papel as keyof typeof MODULOS_POR_PAPEL];
-    if (!restritos || restritos.length === 0) return true;
-    const baseId = id.replace(/^(batismo|eucaristia|crisma|matrimonio)$/, "sacramentos");
-    return restritos.includes(baseId);
+    const baseId = id.replace(/^(batismo|eucaristia|crisma|matrimonio|uncao|obitos)$/, "sacramentos");
+    return canAccessModule(usuario.papel, baseId);
   }
 
   function handleClick(item: NavItem) {
