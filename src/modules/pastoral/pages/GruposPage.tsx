@@ -6,7 +6,7 @@ import type { Paroquia } from '../../../core/types/app.types';
 
 interface GruposPageProps { paroquia?: Paroquia | null; fonte?: string; comunidadeFiltro?: string | null; }
 
-export function GruposPage({ paroquia, fonte, comunidadeFiltro: _comunidadeFiltro }: GruposPageProps) {
+export function GruposPage({ paroquia, fonte, comunidadeFiltro }: GruposPageProps) {
   void paroquia; void fonte;
   const {
     grupos, grupoDraft, setGrupoDraft, salvarGrupo, excluirGrupo, editarGrupo, limparDraft,
@@ -18,7 +18,9 @@ export function GruposPage({ paroquia, fonte, comunidadeFiltro: _comunidadeFiltr
   const [fielIdAdd, setFielIdAdd] = useState("");
   const [cargoAdd, setCargoAdd] = useState("Membro");
 
-  const filtrados = grupos.filter(g => g.nome.toLowerCase().includes(busca.toLowerCase()));
+  const filtrados = grupos
+    .filter(g => !comunidadeFiltro || (g as any).comunidade === comunidadeFiltro)
+    .filter(g => g.nome.toLowerCase().includes(busca.toLowerCase()));
 
   const maskPhone = (v: string) => {
     v = v.replace(/\D/g, "");

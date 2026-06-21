@@ -56,40 +56,51 @@ export function DashboardV2({ paroquia, usuario }: Props) {
           return toN(r[0] ? Object.values(r[0])[0] : 0);
         };
 
+        const comNome = usuario.comunidade_nome ?? null;
+        const isMembro = comNome != null;
+        const comFiltro = isMembro ? " AND comunidade=?" : "";
+        const comParams = isMembro ? [comNome] : [];
+        const comFiltroOrigem = isMembro ? " AND origem=?" : "";
+
         const [
           totalFieis, totalFamilias, totalComunidades, dizimistas, novosMes,
           catequizandos, catEucaristia, catCrisma,
           batismosAno, eucaristiasAno, crismasAno, matrimoniosAno,
         ] = await Promise.all([
-          n("SELECT COUNT(*) FROM fieis WHERE deleted_at IS NULL"),
-          n("SELECT COUNT(*) FROM familias WHERE deleted_at IS NULL"),
-          n("SELECT COUNT(*) FROM comunidades WHERE deleted_at IS NULL"),
-          n("SELECT COUNT(*) FROM fieis WHERE deleted_at IS NULL AND isDizimista=1"),
-          n("SELECT COUNT(*) FROM fieis WHERE deleted_at IS NULL AND substr(created_at,1,7)=?", [anoMes]),
-          n("SELECT COUNT(*) FROM catequese_matriculas WHERE situacao NOT IN ('CONCLUIDO','CANCELADO')"),
-          n("SELECT COUNT(*) FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Eucaristia%'"),
-          n("SELECT COUNT(*) FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Crisma%'"),
-          n("SELECT COUNT(*) FROM sacramentos_registros WHERE tipo='BATISMO' AND substr(data_sacramento,1,4)=? AND deleted_at IS NULL", [anoAtual]),
-          n("SELECT COUNT(*) FROM sacramentos_registros WHERE tipo='EUCARISTIA' AND substr(data_sacramento,1,4)=? AND deleted_at IS NULL", [anoAtual]),
-          n("SELECT COUNT(*) FROM sacramentos_registros WHERE tipo='CRISMA' AND substr(data_sacramento,1,4)=? AND deleted_at IS NULL", [anoAtual]),
-          n("SELECT COUNT(*) FROM sacramentos_registros WHERE tipo='MATRIMONIO' AND substr(data_sacramento,1,4)=? AND deleted_at IS NULL", [anoAtual]),
+          n(`SELECT COUNT(*) FROM fieis WHERE deleted_at IS NULL${comFiltro}`, comParams),
+          n(`SELECT COUNT(*) FROM familias WHERE deleted_at IS NULL${comFiltro}`, comParams),
+          isMembro ? n("SELECT 1") : n("SELECT COUNT(*) FROM comunidades WHERE deleted_at IS NULL"),
+          n(`SELECT COUNT(*) FROM fieis WHERE deleted_at IS NULL AND isDizimista=1${comFiltro}`, comParams),
+          n(`SELECT COUNT(*) FROM fieis WHERE deleted_at IS NULL AND substr(created_at,1,7)=?${comFiltro}`, [anoMes, ...comParams]),
+          isMembro
+            ? n("SELECT COUNT(*) FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.comunidade=?", [comNome])
+            : n("SELECT COUNT(*) FROM catequese_matriculas WHERE situacao NOT IN ('CONCLUIDO','CANCELADO')"),
+          isMembro
+            ? n("SELECT COUNT(*) FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Eucaristia%' AND t.comunidade=?", [comNome])
+            : n("SELECT COUNT(*) FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Eucaristia%'"),
+          isMembro
+            ? n("SELECT COUNT(*) FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Crisma%' AND t.comunidade=?", [comNome])
+            : n("SELECT COUNT(*) FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Crisma%'"),
+          n(`SELECT COUNT(*) FROM sacramentos_registros WHERE tipo='BATISMO' AND substr(data_sacramento,1,4)=? AND deleted_at IS NULL${isMembro ? " AND comunidade=?" : ""}`, [anoAtual, ...comParams]),
+          n(`SELECT COUNT(*) FROM sacramentos_registros WHERE tipo='EUCARISTIA' AND substr(data_sacramento,1,4)=? AND deleted_at IS NULL${isMembro ? " AND comunidade=?" : ""}`, [anoAtual, ...comParams]),
+          n(`SELECT COUNT(*) FROM sacramentos_registros WHERE tipo='CRISMA' AND substr(data_sacramento,1,4)=? AND deleted_at IS NULL${isMembro ? " AND comunidade=?" : ""}`, [anoAtual, ...comParams]),
+          n(`SELECT COUNT(*) FROM sacramentos_registros WHERE tipo='MATRIMONIO' AND substr(data_sacramento,1,4)=? AND deleted_at IS NULL${isMembro ? " AND comunidade=?" : ""}`, [anoAtual, ...comParams]),
         ]);
 
         const [receitaMes, despesaMes] = await Promise.all([
-          n("SELECT COALESCE(SUM(valor),0) FROM lancamentos WHERE tipo='ENTRADA' AND substr(data,1,7)=? AND deleted_at IS NULL", [anoMes]),
-          n("SELECT COALESCE(SUM(valor),0) FROM lancamentos WHERE tipo='SAIDA' AND substr(data,1,7)=? AND deleted_at IS NULL", [anoMes]),
+          n(`SELECT COALESCE(SUM(valor),0) FROM lancamentos WHERE tipo='ENTRADA' AND substr(data,1,7)=? AND deleted_at IS NULL${comFiltroOrigem}`, [anoMes, ...comParams]),
+          n(`SELECT COALESCE(SUM(valor),0) FROM lancamentos WHERE tipo='SAIDA' AND substr(data,1,7)=? AND deleted_at IS NULL${comFiltroOrigem}`, [anoMes, ...comParams]),
         ]);
 
-        // Saldo final disponível em tempo real (repasses aplicados por unidade)
         const cfgRows = await db.select<Record<string, unknown>[]>(
           "SELECT * FROM configuracoes_partilha WHERE id=1 LIMIT 1"
         ).catch(() => [] as Record<string, unknown>[]);
         const cfg = cfgRows[0] ?? { comunidade: 30, area_missionaria: 40, arquidiocese: 29, fundo_missionario: 1 };
 
-
-        const unitsResult = await db.select<{ origem: string }[]>(
-          "SELECT DISTINCT origem FROM lancamentos WHERE origem IS NOT NULL AND origem!='' AND deleted_at IS NULL ORDER BY origem"
-        ).catch(() => [] as { origem: string }[]);
+        const unitsQuery = isMembro
+          ? "SELECT DISTINCT origem FROM lancamentos WHERE origem=? AND deleted_at IS NULL"
+          : "SELECT DISTINCT origem FROM lancamentos WHERE origem IS NOT NULL AND origem!='' AND deleted_at IS NULL ORDER BY origem";
+        const unitsResult = await db.select<{ origem: string }[]>(unitsQuery, isMembro ? [comNome] : []).catch(() => [] as { origem: string }[]);
 
         let saldo = 0;
         for (const { origem: unit } of unitsResult) {
@@ -110,7 +121,7 @@ export function DashboardV2({ paroquia, usuario }: Props) {
           saldo += saldoAnterior + calcularRepasse(toN(mov.ent) - toN(mov.sai), dbRowToPartilha(cfg)).saldoDisponivel;
         }
 
-        const comunidadesRanking = await db.select<{ nome: string; total: number }[]>(
+        const comunidadesRanking = isMembro ? [] : await db.select<{ nome: string; total: number }[]>(
           "SELECT comunidade as nome, COUNT(*) as total FROM fieis WHERE deleted_at IS NULL AND comunidade IS NOT NULL AND comunidade!='' GROUP BY comunidade ORDER BY total DESC LIMIT 5"
         ).catch(() => [] as { nome: string; total: number }[]);
 

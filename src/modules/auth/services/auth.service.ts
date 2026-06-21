@@ -2,6 +2,37 @@ import { getDb } from "@core/database";
 import type { Paroquia, Usuario, PapelUsuario } from "../../../core/types/app.types";
 import type { UsuarioRow, ConfiguracaoPartilha } from "../../../core/types/entities";
 import { hashSenha, verificarSenha } from "../../../core/utils/crypto";
+import { registrarAuditoria } from "@core/services/auditoria.service";
+import { SECURITY } from "@core/config/constants";
+
+const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+
+function checkRateLimit(login: string): { blocked: boolean; remainingMs?: number } {
+  const key = login.toLowerCase().trim();
+  const entry = loginAttempts.get(key);
+  if (!entry) return { blocked: false };
+  if (entry.lockedUntil > Date.now()) {
+    return { blocked: true, remainingMs: entry.lockedUntil - Date.now() };
+  }
+  if (entry.lockedUntil > 0 && entry.lockedUntil <= Date.now()) {
+    loginAttempts.delete(key);
+  }
+  return { blocked: false };
+}
+
+function recordFailedAttempt(login: string): void {
+  const key = login.toLowerCase().trim();
+  const entry = loginAttempts.get(key) ?? { count: 0, lockedUntil: 0 };
+  entry.count++;
+  if (entry.count >= SECURITY.MAX_LOGIN_ATTEMPTS) {
+    entry.lockedUntil = Date.now() + SECURITY.LOCKOUT_DURATION_MS;
+  }
+  loginAttempts.set(key, entry);
+}
+
+function clearAttempts(login: string): void {
+  loginAttempts.delete(login.toLowerCase().trim());
+}
 
 interface SetupInput {
   nome?: string; diocese?: string; cidade?: string; estado?: string;
@@ -72,6 +103,13 @@ export async function getParoquiaAtual(): Promise<Paroquia | null> {
 export async function autenticarUsuario(login: string, senha: string): Promise<Usuario | null> {
   try {
     if (!login || !senha) return null;
+
+    const rl = checkRateLimit(login);
+    if (rl.blocked) {
+      const minutos = Math.ceil((rl.remainingMs ?? 0) / 60000);
+      throw new Error(`Conta bloqueada por excesso de tentativas. Aguarde ${minutos} minuto(s).`);
+    }
+
     const db = await getDb();
     const res = await db.select<AutenticacaoRow[]>(
       `SELECT u.*, c.nome AS comunidade_nome
@@ -80,18 +118,31 @@ export async function autenticarUsuario(login: string, senha: string): Promise<U
        WHERE LOWER(u.login) = LOWER(?)`,
       [login.trim()]
     );
-    if (res.length === 0) return null;
+
+    if (res.length === 0) {
+      recordFailedAttempt(login);
+      await registrarAuditoria({ usuario_id: 0, acao: "LOGIN", tabela: "sistema", descricao: `Tentativa de login falhou: usuário "${login}" não encontrado` });
+      return null;
+    }
+
     const u = res[0];
     const senhaOk = await verificarSenha(String(senha || "").trim(), String(u.senha || "").trim());
-    if (!senhaOk) return null;
+
+    if (!senhaOk) {
+      recordFailedAttempt(login);
+      await registrarAuditoria({ usuario_id: u.id, acao: "LOGIN", tabela: "sistema", descricao: `Tentativa de login falhou: senha incorreta para "${login}"` });
+      return null;
+    }
+
+    clearAttempts(login);
+
     if (!String(u.senha || "").startsWith("pbkdf2$")) {
       try {
         const novaHash = await hashSenha(String(senha || "").trim());
         await db.execute("UPDATE usuarios SET senha=? WHERE id=?", [novaHash, u.id]);
-      } catch {
-        // falha silenciosa — nunca bloqueia o login
-      }
+      } catch { /* nunca bloqueia o login */ }
     }
+
     const usuario: Usuario = {
       id: u.id,
       nome: u.nome || "Usuário",
@@ -101,11 +152,19 @@ export async function autenticarUsuario(login: string, senha: string): Promise<U
       comunidade_id: u.comunidade_id ?? null,
       comunidade_nome: u.comunidade_nome ?? null,
     };
+
+    await registrarAuditoria({ usuario_id: u.id, acao: "LOGIN", tabela: "sistema", descricao: `Login bem-sucedido: ${usuario.nome} (${usuario.papel})` });
+
     return usuario;
   } catch (error) {
+    if ((error as Error).message?.includes("bloqueada")) throw error;
     console.error("Erro ao autenticar:", error);
     return null;
   }
+}
+
+export async function registrarLogout(usuarioId: number, nome: string): Promise<void> {
+  await registrarAuditoria({ usuario_id: usuarioId, acao: "LOGOUT", tabela: "sistema", descricao: `Logout: ${nome}` });
 }
 
 // ─── 3. SETUP INICIAL ─────────────────────────────────────────────────────────
@@ -193,12 +252,20 @@ export async function salvarConfiguracoesParoquia(dados: ConfigParoquia): Promis
 export async function redefinirSenha(login: string, nomeCompleto: string, novaSenha: string): Promise<boolean> {
   try {
     if (!login || !nomeCompleto || !novaSenha) return false;
+    if (novaSenha.trim().length < SECURITY.MIN_PASSWORD_LENGTH) return false;
     const db = await getDb();
     const res = await db.select<UsuarioRow[]>("SELECT * FROM usuarios WHERE LOWER(login)=LOWER(?)", [login.trim()]);
-    if (res.length === 0) return false;
+    if (res.length === 0) {
+      await registrarAuditoria({ usuario_id: 0, acao: "ALTERACAO", tabela: "usuarios", descricao: `Tentativa de reset de senha: login "${login}" não encontrado` });
+      return false;
+    }
     const usuario = res[0];
-    if ((usuario.nome||"").trim().toLowerCase() !== (nomeCompleto||"").trim().toLowerCase()) return false;
+    if ((usuario.nome||"").trim().toLowerCase() !== (nomeCompleto||"").trim().toLowerCase()) {
+      await registrarAuditoria({ usuario_id: usuario.id, acao: "ALTERACAO", tabela: "usuarios", registro_id: usuario.id, descricao: `Tentativa de reset de senha: nome não confere para "${login}"` });
+      return false;
+    }
     await db.execute("UPDATE usuarios SET senha=? WHERE id=?", [await hashSenha(novaSenha.trim()), usuario.id]);
+    await registrarAuditoria({ usuario_id: usuario.id, acao: "ALTERACAO", tabela: "usuarios", registro_id: usuario.id, descricao: `Senha redefinida para "${login}"` });
     return true;
   } catch (error) {
     console.error("Erro ao redefinir senha:", error);

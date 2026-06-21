@@ -59,13 +59,15 @@ export const useFinanceiro = (options: UseFinanceiroOptions = {}) => {
       // Carrega apenas os 2 anos mais recentes em memória — evita degradação com anos de uso.
       // Registros mais antigos continuam acessíveis via queries diretas no módulo Histórico.
       const cutoff = `${new Date().getFullYear() - 1}-01-01`;
+      const comFilter = comunidadeNomeFiltro ? " AND l.origem = ?" : "";
+      const comParams = comunidadeNomeFiltro ? [cutoff, comunidadeNomeFiltro] : [cutoff];
       const dados = await db.select<Lancamento[]>(`
         SELECT l.*, f.nome AS nome_fiel
         FROM lancamentos l
         LEFT JOIN fieis f ON l.fiel_id = f.id
-        WHERE l.data >= ? AND l.deleted_at IS NULL
+        WHERE l.data >= ? AND l.deleted_at IS NULL${comFilter}
         ORDER BY l.data DESC
-      `, [cutoff]);
+      `, comParams);
       setDizimos(dados);
 
       const listaComunidades = await FinanceiroRepository.findComunidades();

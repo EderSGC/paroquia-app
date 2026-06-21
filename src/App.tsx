@@ -3,9 +3,10 @@ import "./App.css";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { ToastProvider } from "./core/ui/Toast";
 
-import { getParoquiaAtual } from "./modules/auth/services/auth.service";
+import { getParoquiaAtual, registrarLogout } from "./modules/auth/services/auth.service";
 import { garantirPastaDocumentos } from "./core/utils/pdfGenerator";
 import { SECURITY } from "./core/config/constants";
+import { setCurrentUserId } from "./core/repository/BaseRepository";
 
 import {
   LoginScreen,
@@ -110,10 +111,15 @@ export default function App() {
     usuarioAtual: Usuario
   ) => {
     setUsuario(usuarioAtual);
+    setCurrentUserId(usuarioAtual.id);
     setTela("app");
   };
 
   const realizarLogout = () => {
+    if (usuario) {
+      registrarLogout(usuario.id, usuario.nome).catch(() => {});
+      setCurrentUserId(0);
+    }
     setUsuario(null);
     setTela("login");
   };

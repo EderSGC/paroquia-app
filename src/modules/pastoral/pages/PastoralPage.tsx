@@ -6,14 +6,14 @@ import type { Paroquia } from '../../../core/types/app.types';
 
 interface PastoralPageProps { paroquia?: Paroquia | null; fonte?: string; comunidadeFiltro?: string | null; }
 
-export function PastoralPage({ paroquia, fonte, comunidadeFiltro: _comunidadeFiltro }: PastoralPageProps) {
+export function PastoralPage({ paroquia, fonte, comunidadeFiltro }: PastoralPageProps) {
   void paroquia; void fonte;
   const { pastorais, pastoralDraft, setPastoralDraft, salvarPastoral, excluirPastoral, fieis, selecionarFiel } = usePastorais();
   const [busca, setBusca] = useState("");
 
-  const pastoraisFiltradas = pastorais.filter(p =>
-    p.nome.toLowerCase().includes(busca.toLowerCase())
-  );
+  const pastoraisFiltradas = pastorais
+    .filter(p => !comunidadeFiltro || p.comunidade === comunidadeFiltro)
+    .filter(p => p.nome.toLowerCase().includes(busca.toLowerCase()));
 
   const maskPhone = (v: string) => {
     v = v.replace(/\D/g, "");

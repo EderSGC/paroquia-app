@@ -1,28 +1,19 @@
 import { getDb } from "@core/database";
+import { registrarAuditoria } from "@core/services/auditoria.service";
+
+let _currentUserId = 0;
+export function setCurrentUserId(id: number): void { _currentUserId = id; }
+export function getCurrentUserId(): number { return _currentUserId; }
 
 export interface FindAllOptions {
-  /** Inclui registros com deleted_at preenchido (padrão: false). */
   includeDeleted?: boolean;
-  /** Cláusula ORDER BY sem a palavra-chave (padrão: "id DESC"). */
   orderBy?: string;
-  /** Condição WHERE adicional, sem a palavra-chave. Ex: "tipo = $1". */
   where?: string;
-  /** Parâmetros de bind para a cláusula where. */
   params?: unknown[];
   limit?: number;
   offset?: number;
 }
 
-/**
- * BaseRepository<T> — base genérica para acesso ao banco.
- *
- * Fornece findAll, findById, create, update, softDelete, hardDelete e restore
- * sem alterar nenhuma lógica existente nos hooks ou páginas.
- * Cada módulo pode estender esta classe para queries especializadas.
- *
- * @param tableName  Nome exato da tabela SQLite.
- * @param hasSoftDelete  true se a tabela tiver coluna deleted_at (padrão: true).
- */
 export class BaseRepository<T extends { id?: number | null }> {
   constructor(
     protected readonly tableName: string,
@@ -88,7 +79,18 @@ export class BaseRepository<T extends { id?: number | null }> {
       `INSERT INTO ${this.tableName} (${cols}) VALUES (${placeholders})`,
       values
     );
-    return result.lastInsertId ?? 0;
+    const newId = result.lastInsertId ?? 0;
+
+    registrarAuditoria({
+      usuario_id: _currentUserId,
+      acao: "INCLUSAO",
+      tabela: this.tableName,
+      registro_id: newId,
+      descricao: `Novo registro em ${this.tableName}`,
+      valor_novo: JSON.stringify(Object.fromEntries(entries)),
+    }).catch(() => {});
+
+    return newId;
   }
 
   async update(id: number, data: Partial<Omit<T, "id">>): Promise<void> {
@@ -105,42 +107,68 @@ export class BaseRepository<T extends { id?: number | null }> {
       `UPDATE ${this.tableName} SET ${sets} WHERE id = $${entries.length + 1}`,
       values
     );
+
+    registrarAuditoria({
+      usuario_id: _currentUserId,
+      acao: "ALTERACAO",
+      tabela: this.tableName,
+      registro_id: id,
+      descricao: `Alteração em ${this.tableName} #${id}`,
+      valor_novo: JSON.stringify(Object.fromEntries(entries)),
+    }).catch(() => {});
   }
 
-  /** Define deleted_at = CURRENT_TIMESTAMP (soft delete). */
   async softDelete(id: number): Promise<void> {
     if (!this.hasSoftDelete) {
-      throw new Error(
-        `BaseRepository.softDelete: ${this.tableName} não possui deleted_at`
-      );
+      throw new Error(`BaseRepository.softDelete: ${this.tableName} não possui deleted_at`);
     }
     const db = await getDb();
     await db.execute(
       `UPDATE ${this.tableName} SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1`,
       [id]
     );
+
+    registrarAuditoria({
+      usuario_id: _currentUserId,
+      acao: "EXCLUSAO",
+      tabela: this.tableName,
+      registro_id: id,
+      descricao: `Exclusão em ${this.tableName} #${id}`,
+    }).catch(() => {});
   }
 
-  /** DELETE físico — irreversível. */
   async hardDelete(id: number): Promise<void> {
     const db = await getDb();
     await db.execute(
       `DELETE FROM ${this.tableName} WHERE id = $1`,
       [id]
     );
+
+    registrarAuditoria({
+      usuario_id: _currentUserId,
+      acao: "EXCLUSAO",
+      tabela: this.tableName,
+      registro_id: id,
+      descricao: `Exclusão permanente em ${this.tableName} #${id}`,
+    }).catch(() => {});
   }
 
-  /** Restaura um registro apagado via soft delete (deleted_at = NULL). */
   async restore(id: number): Promise<void> {
     if (!this.hasSoftDelete) {
-      throw new Error(
-        `BaseRepository.restore: ${this.tableName} não possui deleted_at`
-      );
+      throw new Error(`BaseRepository.restore: ${this.tableName} não possui deleted_at`);
     }
     const db = await getDb();
     await db.execute(
       `UPDATE ${this.tableName} SET deleted_at = NULL WHERE id = $1`,
       [id]
     );
+
+    registrarAuditoria({
+      usuario_id: _currentUserId,
+      acao: "ALTERACAO",
+      tabela: this.tableName,
+      registro_id: id,
+      descricao: `Restauração em ${this.tableName} #${id}`,
+    }).catch(() => {});
   }
 }
