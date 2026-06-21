@@ -7,6 +7,10 @@ import {
   fazerBackup,
   restaurarBackup,
   getBackupInfo,
+  getBackupConfig,
+  configurarPastaCloud,
+  fazerBackupNaPasta,
+  formatarTamanho,
 } from "../../../core/services/backup.service";
 import { AuditoriaPage } from "../../configuracoes/pages/AuditoriaPage";
 
@@ -296,6 +300,61 @@ export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: Syste
         <p style={{ margin: "16px 0 0", fontSize: 12, color: "#b45309", background: "#fef3c7", padding: "10px 14px", borderRadius: 8, border: "1px solid #fde68a" }}>
           ⚠️ A restauração substitui imediatamente todos os dados atuais e reinicia o sistema. Esta operação não pode ser desfeita.
         </p>
+
+        {/* ── Backup na Nuvem ── */}
+        <div style={{ marginTop: 28, borderTop: "1px solid #e4e7ec", paddingTop: 24 }}>
+          <h3 style={{ margin: "0 0 8px", fontSize: 16, color: "#1a1d2e" }}>☁️ Backup Automático na Nuvem</h3>
+          <p style={{ margin: "0 0 16px", color: "#667085", fontSize: 13, lineHeight: 1.6 }}>
+            Configure uma pasta sincronizada (Google Drive, OneDrive, Dropbox, iCloud) para backups automáticos a cada 24 horas.
+            Os relatórios PDF também podem ser salvos nessa pasta para compartilhar com o pároco.
+          </p>
+
+          <div style={{ background: "#f0fdf4", borderRadius: 12, border: "1px solid #bbf7d0", padding: 16, marginBottom: 16 }}>
+            <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: "#15803d", textTransform: "uppercase" }}>Pasta Configurada</p>
+            <p style={{ margin: 0, fontSize: 13, color: "#166534", wordBreak: "break-all" }}>
+              {getBackupConfig().pastaCloud || "Nenhuma pasta configurada — backups automáticos desativados."}
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <button
+              onClick={async () => {
+                try {
+                  const pasta = await configurarPastaCloud(usuario.id);
+                  if (pasta) {
+                    setBackupInfo(getBackupInfo());
+                    setAlerta({ tipo: "sucesso", msg: `☁️ Pasta de backup configurada!\n\n📁 ${pasta}\n\nBackups automáticos ativados (a cada 24h).` });
+                  }
+                } catch (e) {
+                  if ((e as Error).message !== "CANCELLED") {
+                    setAlerta({ tipo: "erro", msg: "Erro ao configurar pasta de backup." });
+                  }
+                }
+              }}
+              style={{ background: "#1d4ed8", color: "white", border: "none", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+            >
+              📂 {getBackupConfig().pastaCloud ? "Alterar Pasta" : "Configurar Pasta"}
+            </button>
+
+            {getBackupConfig().pastaCloud && (
+              <button
+                onClick={async () => {
+                  try {
+                    const pasta = getBackupConfig().pastaCloud!;
+                    await fazerBackupNaPasta(pasta, usuario.id);
+                    setBackupInfo(getBackupInfo());
+                    setAlerta({ tipo: "sucesso", msg: "☁️ Backup enviado para a nuvem com sucesso!" });
+                  } catch (e) {
+                    setAlerta({ tipo: "erro", msg: "Erro ao fazer backup na nuvem." });
+                  }
+                }}
+                style={{ background: "#059669", color: "white", border: "none", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+              >
+                ☁️ Enviar Backup Agora
+              </button>
+            )}
+          </div>
+        </div>
       </section>
       )}
 
