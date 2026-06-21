@@ -221,6 +221,15 @@ const MIGRATIONS: Migration[] = [
       }
     },
   },
+  {
+    version: 20260620004,
+    description: "Garantir UNIQUE index em usuarios.login para logins ativos",
+    up: async (db) => {
+      await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_login_unique ON usuarios(login) WHERE login IS NOT NULL AND login != '' AND deleted_at IS NULL"
+      ).catch(() => {});
+    },
+  },
 ];
 
 /**
