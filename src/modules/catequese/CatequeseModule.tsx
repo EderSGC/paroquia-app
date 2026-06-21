@@ -20,10 +20,7 @@ const TITULOS: Record<string, string> = {
   "CATEQUISTAS": "Catequistas",
 };
 
-export function CatequeseModule({ paroquia, comunidadeId: _comunidadeId, comunidadeNome: _comunidadeNome, abaPadrao }: CatequeseModuleProps) {
-  void _comunidadeId;
-  void _comunidadeNome;
-
+export function CatequeseModule({ paroquia, comunidadeId, comunidadeNome, abaPadrao }: CatequeseModuleProps) {
   const aba = abaPadrao ?? "TURMAS";
   const titulo = TITULOS[aba] ?? aba;
 
@@ -33,7 +30,7 @@ export function CatequeseModule({ paroquia, comunidadeId: _comunidadeId, comunid
       case "PRESENÇA":    return <PresencaPage paroquia={paroquia} />;
       case "CATEQUISTAS": return <CatequistasPage paroquia={paroquia} />;
       case "TURMAS":
-      default:            return <TurmasPage paroquia={paroquia} />;
+      default:            return <TurmasPage paroquia={paroquia} comunidadeNome={comunidadeNome} />;
     }
   };
 
@@ -51,7 +48,10 @@ export function CatequeseModule({ paroquia, comunidadeId: _comunidadeId, comunid
       `}</style>
 
       <header className="no-print" style={{ padding: "10px 25px", background: "var(--dm-card-bg)", borderBottom: "1px solid var(--dm-card-border)" }}>
-        <h2 style={{ margin: 0, color: "var(--dm-badge-color)", fontSize: "18px" }}>{titulo}</h2>
+        <h2 style={{ margin: 0, color: "var(--dm-badge-color)", fontSize: "18px" }}>
+          {titulo}
+          {comunidadeNome && <span style={{ fontSize: 13, fontWeight: 400, color: "#667085", marginLeft: 8 }}>🔒 {comunidadeNome}</span>}
+        </h2>
       </header>
 
       <main style={{ flex: 1, padding: "25px", overflow: "auto" }}>

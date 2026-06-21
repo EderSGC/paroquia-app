@@ -7,26 +7,34 @@ import type { EtapaCatequese } from "../types";
 import type { Paroquia } from "../../../core/types/app.types";
 import type { CatequeseTurma } from "../../../core/types/entities";
 
-export function TurmasPage({ paroquia }: { paroquia: Paroquia }) {
+interface TurmasPageProps {
+  paroquia: Paroquia;
+  comunidadeNome?: string | null;
+}
 
-  const { turmas, salvarTurma, excluirTurma, comunidades, catequistas, fichas, matriculas, salvarMatricula, excluirMatricula } = useCatequese(); 
-  
+export function TurmasPage({ paroquia, comunidadeNome }: TurmasPageProps) {
+
+  const { turmas, salvarTurma, excluirTurma, comunidades, catequistas, fichas, matriculas, salvarMatricula, excluirMatricula } = useCatequese();
+
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<number | null>(null);
   const [turmaSelecionada, setTurmaSelecionada] = useState<CatequeseTurma | null>(null);
   const [novoCatequizandoId, setNovoCatequizandoId] = useState("");
   const [fonteDocumento, setFonteDocumento] = useState("Arial");
   const printRef = useRef<HTMLElement | null>(null);
+  const filtradoPorComunidade = comunidadeNome != null;
 
   const [draft, setDraft] = useState({
-    nome: "", etapa: "Primeira Eucaristia" as EtapaCatequese, ano: 2026, comunidade: "", horario: "", catequista_id: ""
+    nome: "", etapa: "Primeira Eucaristia" as EtapaCatequese, ano: 2026, comunidade: comunidadeNome ?? "", horario: "", catequista_id: ""
   });
 
-  const turmasFiltradas = (turmas || []).filter(t => 
-    t.nome?.toLowerCase().includes(busca.toLowerCase()) || 
-    t.comunidade?.toLowerCase().includes(busca.toLowerCase()) ||
-    t.nome_catequista?.toLowerCase().includes(busca.toLowerCase())
-  );
+  const turmasFiltradas = (turmas || [])
+    .filter(t => !filtradoPorComunidade || t.comunidade === comunidadeNome)
+    .filter(t =>
+      t.nome?.toLowerCase().includes(busca.toLowerCase()) ||
+      t.comunidade?.toLowerCase().includes(busca.toLowerCase()) ||
+      t.nome_catequista?.toLowerCase().includes(busca.toLowerCase())
+    );
 
   const alunosDaTurma = turmaSelecionada ? (matriculas || []).filter(m => m.turma_id === turmaSelecionada.id) : [];
 

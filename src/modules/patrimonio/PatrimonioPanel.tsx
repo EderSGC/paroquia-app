@@ -5,47 +5,52 @@ import { PanelSection, PanelDivider, PanelRow } from "@/components/ui/SectionHea
 interface Stats {
   totalBens: number;
   valorTotal: number;
-  manutencoesPendentes: number;
   porCategoria: { categoria: string; total: number }[];
 }
 
-const empty: Stats = { totalBens: 0, valorTotal: 0, manutencoesPendentes: 0, porCategoria: [] };
+const empty: Stats = { totalBens: 0, valorTotal: 0, porCategoria: [] };
 
-export function PatrimonioPanel() {
+interface PatrimonioPanelProps {
+  comunidadeId?: number | null;
+}
+
+export function PatrimonioPanel({ comunidadeId = null }: PatrimonioPanelProps) {
   const [data, setData] = useState<Stats>(empty);
+  const filtrado = comunidadeId != null;
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const db = await getDb();
-        const n = async (sql: string) => {
-          const r = await db.select<{ n: number }[]>(sql);
-          return r[0]?.n ?? 0;
-        };
+        const comWhere = filtrado ? " AND comunidade_id=?" : "";
+        const comParams = filtrado ? [comunidadeId] : [];
 
-        const [totalBens, valorTotal] = await Promise.all([
-          n("SELECT COUNT(*) as n FROM patrimonio_bens WHERE deleted_at IS NULL"),
-          (async () => {
-            const r = await db.select<{ v: number }[]>(
-              "SELECT COALESCE(SUM(valor_estimado),0) as v FROM patrimonio_bens WHERE deleted_at IS NULL"
-            );
-            return r[0]?.v ?? 0;
-          })(),
-        ]);
+        const bensRows = await db.select<{ n: number }[]>(
+          `SELECT COUNT(*) as n FROM patrimonio_bens WHERE deleted_at IS NULL${comWhere}`,
+          comParams
+        );
+        const totalBens = bensRows[0]?.n ?? 0;
+
+        const valorRows = await db.select<{ v: number }[]>(
+          `SELECT COALESCE(SUM(valor_estimado),0) as v FROM patrimonio_bens WHERE deleted_at IS NULL${comWhere}`,
+          comParams
+        );
+        const valorTotal = valorRows[0]?.v ?? 0;
 
         const porCategoria = await db.select<{ categoria: string; total: number }[]>(
-          "SELECT categoria, COUNT(*) as total FROM patrimonio_bens WHERE deleted_at IS NULL GROUP BY categoria ORDER BY total DESC LIMIT 6"
+          `SELECT categoria, COUNT(*) as total FROM patrimonio_bens WHERE deleted_at IS NULL${comWhere} GROUP BY categoria ORDER BY total DESC LIMIT 6`,
+          comParams
         ).catch(() => []);
 
         if (cancelled) return;
-        setData({ totalBens, valorTotal, manutencoesPendentes: 0, porCategoria });
+        setData({ totalBens, valorTotal, porCategoria });
       } catch (e) {
         console.error("PatrimonioPanel:", e);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [comunidadeId, filtrado]);
 
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 

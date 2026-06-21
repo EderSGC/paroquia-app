@@ -193,7 +193,7 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
     if (PASTORAL_ABAS[mod])    return <PastoralPanel comunidadeNome={comunidadeNome} />;
     if (mod === "ficha")       return <PastoralPanel comunidadeNome={comunidadeNome} />;
     if (mod === "agenda")      return <AgendaPanel />;
-    if (mod === "patrimonio")  return <PatrimonioPanel />;
+    if (mod === "patrimonio")  return <PatrimonioPanel comunidadeId={comunidadeId} />;
     if (mod === "configuracoes") return <ConfiguracoesPanel />;
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 8, padding: "24px 0" }}>

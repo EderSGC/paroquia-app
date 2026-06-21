@@ -29,8 +29,8 @@ interface NavItem {
 
 const NAV_ITEMS: readonly NavItem[] = [
   // PRINCIPAL
-  { id: "dashboard",   label: "Dashboard",        group: "Principal",   icon: LayoutDashboard, papeis: ["admin","paroquia","vigario","secretaria"] },
-  { id: "agenda",      label: "Agenda",            group: "Principal",   icon: CalendarDays,    papeis: ["admin","paroquia","vigario","secretaria"] },
+  { id: "dashboard",   label: "Dashboard",        group: "Principal",   icon: LayoutDashboard },
+  { id: "agenda",      label: "Agenda",            group: "Principal",   icon: CalendarDays },
   // COMUNIDADE
   { id: "fieis",       label: "Fiéis",             group: "Comunidade",  icon: User },
   { id: "familias",    label: "Famílias",           group: "Comunidade",  icon: Home },
@@ -40,18 +40,18 @@ const NAV_ITEMS: readonly NavItem[] = [
   { id: "pastorais",   label: "Pastorais",          group: "Pastoral",    icon: Heart },
   { id: "catequese",   label: "Catequese",          group: "Pastoral",    icon: BookOpen },
   // SACRAMENTOS
-  { id: "batismo",     label: "Batismo",            group: "Sacramentos", icon: Droplets,        papeis: ["admin","paroquia","vigario","secretaria"], sub: "BATISMO" },
-  { id: "eucaristia",  label: "Eucaristia",         group: "Sacramentos", icon: Star,            papeis: ["admin","paroquia","vigario","secretaria"], sub: "EUCARISTIA" },
-  { id: "crisma",      label: "Crisma",             group: "Sacramentos", icon: Flame,           papeis: ["admin","paroquia","vigario","secretaria"], sub: "CRISMA" },
-  { id: "matrimonio",  label: "Matrimônio",         group: "Sacramentos", icon: Users,           papeis: ["admin","paroquia","vigario","secretaria"], sub: "MATRIMONIO" },
-  { id: "uncao",       label: "Unção dos Enfermos", group: "Sacramentos", icon: Activity,        papeis: ["admin","paroquia","vigario","secretaria"] },
-  { id: "obitos",      label: "Óbitos / Exéquias",  group: "Sacramentos", icon: BookMarked,      papeis: ["admin","paroquia","vigario","secretaria"] },
+  { id: "batismo",     label: "Batismo",            group: "Sacramentos", icon: Droplets,        sub: "BATISMO" },
+  { id: "eucaristia",  label: "Eucaristia",         group: "Sacramentos", icon: Star,            sub: "EUCARISTIA" },
+  { id: "crisma",      label: "Crisma",             group: "Sacramentos", icon: Flame,           sub: "CRISMA" },
+  { id: "matrimonio",  label: "Matrimônio",         group: "Sacramentos", icon: Users,           sub: "MATRIMONIO" },
+  { id: "uncao",       label: "Unção dos Enfermos", group: "Sacramentos", icon: Activity },
+  { id: "obitos",      label: "Óbitos / Exéquias",  group: "Sacramentos", icon: BookMarked },
   // GESTÃO
   { id: "financeiro",  label: "Financeiro",         group: "Gestão",      icon: DollarSign },
   { id: "patrimonio",  label: "Patrimônio",         group: "Gestão",      icon: Package },
   // SISTEMA
-  { id: "documentos",  label: "Documentos",         group: "Sistema",     icon: FileText,        papeis: ["admin","paroquia","vigario","secretaria"] },
-  { id: "config",      label: "Configurações",      group: "Sistema",     icon: Settings,        papeis: ["admin","paroquia","vigario","secretaria"] },
+  { id: "documentos",  label: "Documentos",         group: "Sistema",     icon: FileText },
+  { id: "config",      label: "Configurações",      group: "Sistema",     icon: Settings },
   { id: "__logout",    label: "Sair",               group: "Sistema",     icon: LogOut,          isAction: true },
 ];
 
@@ -105,8 +105,8 @@ export function AppSidebar({ paroquia, usuario, isDark, onLogout, onToggleTheme 
   }
 
   function canView(item: NavItem): boolean {
-    if (!item.papeis) return true;
-    return item.papeis.includes(usuario.papel);
+    if (item.isAction) return true;
+    return canAccess(item.id);
   }
 
   function canAccess(id: string): boolean {
