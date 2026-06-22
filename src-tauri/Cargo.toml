@@ -1,6 +1,6 @@
 [package]
 name = "paroquia-app"
-version = "1.2.0"
+version = "1.2.1"
 description = "Sistema de Gestão Paroquial — Área Missionária Nossa Senhora da Esperança"
 authors = ["Pe. Éder de Souza Gomes Cordeiro"]
 edition = "2021"
