@@ -20,7 +20,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data: blob:; connect-src ipc: http://ipc.localhost; window-src 'self'; font-src 'self' data:;"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data: blob:; connect-src ipc: http://ipc.localhost https://github.com https://api.github.com; window-src 'self'; font-src 'self' data:;"
     }
   },
   "bundle": {
@@ -44,6 +44,14 @@
     },
     "macOS": {
       "minimumSystemVersion": "10.15"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/EderSGC/paroquia-app/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEIyQzJBMjdDMzlDRTc3REYKUldUZmQ4NDVmS0xDc3FpK3VpaW40VUNkczB3eHZMNUk1aEl5V2dRejc4T3E5Y3gvTDZ5NmJrc1oK"
     }
   }
 }

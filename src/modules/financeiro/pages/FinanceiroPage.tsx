@@ -377,7 +377,7 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
   // Lançamentos do período selecionado (De / Até)
   const lancamentosDia = totalGeral.filter(l =>
     l.data >= dataSel && l.data <= dataSelFim &&
-    (unidade === '' || unidade === 'TODOS' || l.origem === unidade)
+    (unidade !== '' && (unidade === 'TODOS' || l.origem === unidade))
   ).sort((a, b) => (a.data ?? '').localeCompare(b.data ?? '') || a.id - b.id);
   const totalEntradasDia = lancamentosDia.filter(l => l.tipo === 'ENTRADA').reduce((s, l) => s + l.valor, 0);
   const totalSaidasDia   = lancamentosDia.filter(l => l.tipo === 'SAIDA').reduce((s, l) => s + l.valor, 0);
@@ -598,8 +598,15 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
           </div>
         )}
 
+        {/* Aviso: selecione comunidade */}
+        {unidade === '' && (
+          <div style={{ ...card, textAlign: 'center', padding: 40, color: '#98a2b3', fontSize: 14 }}>
+            Selecione uma comunidade acima para visualizar os lançamentos.
+          </div>
+        )}
+
         {/* Tabela de Lançamentos */}
-        <div style={card}>
+        <div style={{ ...card, display: unidade === '' ? 'none' : undefined }}>
           <h3 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 700, color: '#1f3b73' }}>Lançamentos do Período</h3>
 
           {/* Form de Lançamento */}
@@ -701,7 +708,7 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
         </div>
 
         {/* Fluxo Contábil + Conferência Física — lado a lado */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: unidade === '' ? 'none' : 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
           {/* Fluxo Contábil */}
           <div style={card}>
@@ -963,7 +970,7 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
         </div>
 
         {/* Lixeira de registros excluídos */}
-        <div style={card}>
+        <div style={{ ...card, display: unidade === '' ? 'none' : undefined }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showLixeira ? 12 : 0 }}>
             <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#667085' }}>🗑️ Lixeira — registros excluídos</h3>
             <button onClick={() => setShowLixeira(v => !v)} style={{ padding: '6px 14px', background: showLixeira ? '#fee2e2' : '#f2f4f7', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 12, color: showLixeira ? '#dc2626' : '#344054' }}>
@@ -1038,10 +1045,39 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
           </div>
 
           {/* Tabela */}
-          <div style={card}>
-            <h3 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 700, color: '#1f3b73' }}>
-              Distribuição de Repasses — {anoRepasse}
-            </h3>
+          <div style={card} id="repasses-print-area">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1f3b73' }}>
+                Distribuição de Repasses — {anoRepasse}
+              </h3>
+              {dadosRepasse.length > 0 && (
+                <button
+                  onClick={() => {
+                    const area = document.getElementById('repasses-print-area');
+                    if (!area) return;
+                    const win = window.open('', '_blank', 'width=900,height=700');
+                    if (!win) return;
+                    win.document.write(`<!DOCTYPE html><html><head><title>Repasses ${anoRepasse}</title><style>
+                      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; color: #1a1a1a; }
+                      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                      th { background: #f2f4f7; padding: 8px 10px; text-align: right; font-size: 10px; font-weight: 700; color: #667085; border-bottom: 1.5px solid #e4e7ec; text-transform: uppercase; }
+                      th:first-child { text-align: left; }
+                      td { padding: 8px 10px; text-align: right; border-bottom: 1px solid #f2f4f7; }
+                      td:first-child { text-align: left; font-weight: 600; }
+                      tfoot tr { background: #1f3b73; color: white; font-weight: 800; }
+                      tfoot td { border: none; padding: 10px; }
+                      h3 { color: #1f3b73; margin-bottom: 16px; }
+                      @media print { body { padding: 0; } button { display: none !important; } }
+                    </style></head><body>${area.innerHTML}</body></html>`);
+                    win.document.close();
+                    setTimeout(() => { win.print(); }, 300);
+                  }}
+                  style={{ padding: '7px 16px', background: '#f2f4f7', border: '1px solid #d0d5dd', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 12, color: '#344054' }}
+                >
+                  🖨️ Imprimir
+                </button>
+              )}
+            </div>
             {loadingRepasse ? (
               <div style={{ textAlign: 'center', padding: 24, color: '#98a2b3' }}>Carregando...</div>
             ) : dadosRepasse.length === 0 ? (

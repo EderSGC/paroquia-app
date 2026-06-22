@@ -30,6 +30,11 @@
     "sql:allow-select",
     "sql:allow-close",
     "core:webview:allow-print",
-    "opener:allow-open-path"
+    "opener:allow-open-path",
+    "process:allow-restart",
+    "process:allow-exit",
+    "updater:default",
+    "updater:allow-check",
+    "updater:allow-download-and-install"
   ]
 }

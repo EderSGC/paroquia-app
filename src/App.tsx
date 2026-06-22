@@ -2,6 +2,7 @@ import "./App.css";
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { ToastProvider } from "./core/ui/Toast";
+import { UpdateChecker } from "./core/ui/UpdateChecker";
 
 import { getParoquiaAtual, registrarLogout } from "./modules/auth/services/auth.service";
 import { iniciarBackupAutomatico } from "./core/services/backup.service";
@@ -200,6 +201,7 @@ export default function App() {
           onParoquiaUpdate={setParoquia}
           onLogout={realizarLogout}
         />
+        <UpdateChecker />
       </ToastProvider>
     );
   }

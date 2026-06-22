@@ -53,6 +53,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: v__VERSION__
           releaseName: 'Sistema de Gestão Paroquial v__VERSION__'
@@ -60,8 +62,9 @@ jobs:
             Instaladores do Sistema de Gestão Paroquial.
 
             **macOS:** Baixar o .dmg correspondente ao seu processador (aarch64 = Apple Silicon, x64 = Intel)
-            **Windows:** Baixar o .msi
+            **Windows:** Baixar o .msi ou .nsis
             **Linux:** Baixar o .AppImage ou .deb
           releaseDraft: true
           prerelease: false
+          updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
