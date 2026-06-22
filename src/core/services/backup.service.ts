@@ -3,6 +3,7 @@ import { copyFile, readFile, stat, mkdir, readDir } from "@tauri-apps/plugin-fs"
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { DATABASE, BACKUP } from "../config/constants";
 import { connection } from "../database/connection";
+import { logger } from "@core/utils/logger";
 import { registrarAuditoria } from "./auditoria.service";
 
 export interface BackupInfo {
@@ -143,6 +144,13 @@ async function limparBackupsAntigos(pasta: string): Promise<void> {
   } catch { /* ok — pasta pode não existir ainda */ }
 }
 
+export function pararBackupAutomatico(): void {
+  if (autoBackupTimer) {
+    clearInterval(autoBackupTimer);
+    autoBackupTimer = null;
+  }
+}
+
 export function iniciarBackupAutomatico(): void {
   if (autoBackupTimer) {
     clearInterval(autoBackupTimer);
@@ -155,7 +163,7 @@ export function iniciarBackupAutomatico(): void {
   autoBackupTimer = setInterval(async () => {
     try {
       await fazerBackupNaPasta(config.pastaCloud!);
-      console.log("[Backup] Backup automático concluído");
+      logger.log("[Backup] Backup automático concluído");
     } catch (e) {
       console.error("[Backup] Falha no backup automático:", e);
     }
@@ -234,6 +242,12 @@ export async function restaurarBackup(usuarioId?: number): Promise<void> {
   }
 
   const dbPath = await getDbPath();
+  const preRestorePath = dbPath + ".pre-restore.bak";
+  try {
+    await copyFile(dbPath, preRestorePath);
+  } catch {
+    logger.warn("Não foi possível criar backup pré-restauração");
+  }
   await copyFile(arquivo, dbPath);
   window.location.reload();
 }

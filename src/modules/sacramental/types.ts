@@ -4,6 +4,7 @@ export interface DadosCrisma {
   nome: string;
   dataNasc: string;
   rgCpf: string;
+  cpf: string;
   endereco: string;
   tel: string;
   email: string;

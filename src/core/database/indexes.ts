@@ -1,4 +1,5 @@
 import Database from "@tauri-apps/plugin-sql";
+import { logger } from "@core/utils/logger";
 
 /**
  * Cria todos os índices necessários para performance.
@@ -133,5 +134,5 @@ export async function createIndexes(db: Database): Promise<void> {
       ok++;
     } catch { skip++; }
   }
-  console.log(`✅ Índices: ${ok} criados/verificados, ${skip} ignorados (tabela inexistente)`);
+  logger.log(`✅ Índices: ${ok} criados/verificados, ${skip} ignorados (tabela inexistente)`);
 }

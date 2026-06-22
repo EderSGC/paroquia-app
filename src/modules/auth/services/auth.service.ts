@@ -115,7 +115,7 @@ export async function autenticarUsuario(login: string, senha: string): Promise<U
       `SELECT u.*, c.nome AS comunidade_nome
        FROM usuarios u
        LEFT JOIN comunidades c ON c.id = u.comunidade_id
-       WHERE LOWER(u.login) = LOWER(?)`,
+       WHERE LOWER(u.login) = LOWER(?) AND u.deleted_at IS NULL`,
       [login.trim()]
     );
 
@@ -190,7 +190,10 @@ export async function finalizarSetup(arg1: SetupInput, arg2?: SetupInput): Promi
 
     const uNome = (u.nome || "Admin").trim();
     const uLogin = (u.login || "admin").trim();
-    const uSenhaRaw = (u.senha || "123456").trim();
+    const uSenhaRaw = (u.senha || "").trim();
+    if (!uSenhaRaw || uSenhaRaw.length < SECURITY.MIN_PASSWORD_LENGTH) {
+      throw new Error(`Senha é obrigatória e deve ter no mínimo ${SECURITY.MIN_PASSWORD_LENGTH} caracteres`);
+    }
     const uSenha = await hashSenha(uSenhaRaw);
 
     if (!pNome) throw new Error("Nome da paróquia é obrigatório");
@@ -254,7 +257,7 @@ export async function redefinirSenha(login: string, nomeCompleto: string, novaSe
     if (!login || !nomeCompleto || !novaSenha) return false;
     if (novaSenha.trim().length < SECURITY.MIN_PASSWORD_LENGTH) return false;
     const db = await getDb();
-    const res = await db.select<UsuarioRow[]>("SELECT * FROM usuarios WHERE LOWER(login)=LOWER(?)", [login.trim()]);
+    const res = await db.select<UsuarioRow[]>("SELECT * FROM usuarios WHERE LOWER(login)=LOWER(?) AND deleted_at IS NULL", [login.trim()]);
     if (res.length === 0) {
       await registrarAuditoria({ usuario_id: 0, acao: "ALTERACAO", tabela: "usuarios", descricao: `Tentativa de reset de senha: login "${login}" não encontrado` });
       return false;
@@ -273,29 +276,7 @@ export async function redefinirSenha(login: string, nomeCompleto: string, novaSe
   }
 }
 
-// ─── 6. ATUALIZAR USUÁRIO ─────────────────────────────────────────────────────
-
-export async function atualizarUsuario(usuario: { id: number; nome: string; login: string }): Promise<void> {
-  const db = await getDb();
-  await db.execute("UPDATE usuarios SET nome=?,login=? WHERE id=?", [usuario.nome, usuario.login, usuario.id]);
-}
-
-// ─── 7. CRIAR USUÁRIO MESTRE (setup) ─────────────────────────────────────────
-
-export async function criarUsuarioMestre(usuario: { nome?: string; login?: string; senha?: string }): Promise<void> {
-  try {
-    const db = await getDb();
-    const senhaHash = await hashSenha(usuario.senha || "123456");
-    await db.execute(
-      "INSERT INTO usuarios (nome,login,senha,nivel,papel) VALUES (?,?,?,?,?)",
-      [usuario.nome||"Admin", usuario.login||"admin", senhaHash, "admin", "paroquia"]
-    ).catch(() =>
-      db.execute("INSERT INTO usuarios (nome,login,senha) VALUES (?,?,?)", [usuario.nome||"Admin", usuario.login||"admin", senhaHash])
-    );
-  } catch (error) { throw error; }
-}
-
-// ─── 8. GESTÃO DE USUÁRIOS (admin) ───────────────────────────────────────────
+// ─── 6. GESTÃO DE USUÁRIOS (admin) ───────────────────────────────────────────
 
 export interface UsuarioListItem {
   id: number;
@@ -315,6 +296,7 @@ export async function listarUsuarios(): Promise<UsuarioListItem[]> {
            c.nome AS comunidade_nome
     FROM usuarios u
     LEFT JOIN comunidades c ON c.id = u.comunidade_id
+    WHERE u.deleted_at IS NULL
     ORDER BY u.nome ASC
   `);
 }
@@ -348,10 +330,10 @@ export async function carregarPartilha(): Promise<ConfigPartilha> {
     const res = await db.select<ConfiguracaoPartilha[]>("SELECT * FROM configuracoes_partilha WHERE id=1 LIMIT 1");
     if (res.length > 0) {
       return {
-        comunidade:       Number(res[0].comunidade)       ?? 30,
-        areaMissionaria:  Number(res[0].area_missionaria)  ?? 40,
-        arquidiocese:     Number(res[0].arquidiocese)      ?? 29,
-        fundoMissionario: Number(res[0].fundo_missionario) ?? 1,
+        comunidade:       Number(res[0].comunidade)       || 30,
+        areaMissionaria:  Number(res[0].area_missionaria)  || 40,
+        arquidiocese:     Number(res[0].arquidiocese)      || 29,
+        fundoMissionario: Number(res[0].fundo_missionario) || 1,
       };
     }
   } catch { /* retorna padrão */ }

@@ -4,7 +4,7 @@ import { useTheme } from "@core/hooks/useTheme";
 import { useToast } from "@core/ui/Toast";
 import { fazerBackup, restaurarBackup } from "@core/services/backup.service";
 
-import type { Paroquia, Usuario } from "@core/types/app.types";
+import type { Paroquia, Usuario, PapelUsuario } from "@core/types/app.types";
 import { canAccessModule, hasPermission } from "@core/auth/permissions";
 
 import { WorkspaceProvider, useWorkspace, type ModuleId } from "./WorkspaceContext";
@@ -61,7 +61,7 @@ const SACRAMENTAL_MODS: Record<string, string> = {
 
 function canAccess(papel: string, mod: string): boolean {
   const base = SACRAMENTAL_MODS[mod] ? "sacramentos" : mod;
-  return canAccessModule(papel as any, base);
+  return canAccessModule(papel as PapelUsuario, base);
 }
 
 /* ─── Inner layout (needs WorkspaceContext) ────────────────────────────── */
@@ -119,7 +119,7 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
           fielId={fichaId}
           usuarioNome={usuario.nome}
           onVoltar={() => navigate("fieis")}
-          onNavFiel={(id) => navigate("ficha" as any, String(id))}
+          onNavFiel={(id) => navigate("ficha", String(id))}
         />
       );
     }

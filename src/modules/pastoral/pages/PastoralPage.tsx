@@ -7,7 +7,7 @@ import type { Paroquia } from '../../../core/types/app.types';
 interface PastoralPageProps { paroquia?: Paroquia | null; fonte?: string; comunidadeFiltro?: string | null; }
 
 export function PastoralPage({ paroquia, fonte, comunidadeFiltro }: PastoralPageProps) {
-  void paroquia; void fonte;
+  void fonte;
   const { pastorais, pastoralDraft, setPastoralDraft, salvarPastoral, excluirPastoral, fieis, selecionarFiel } = usePastorais();
   const [busca, setBusca] = useState("");
 
@@ -56,11 +56,11 @@ export function PastoralPage({ paroquia, fonte, comunidadeFiltro }: PastoralPage
           {(['coordenador', 'vice', 'secretario', 'tesoureiro'] as const).map(cargo => (
             <div key={cargo} style={cargoBox}>
               <span style={labelCargo}>{cargo.toUpperCase()}</span>
-              <select style={inS_compact} value={(pastoralDraft as any)[`${cargo}_id`] ?? ""} onChange={e => selecionarFiel(cargo, Number(e.target.value))}>
+              <select style={inS_compact} value={(pastoralDraft as Record<string, string | number | null>)[`${cargo}_id`] ?? ""} onChange={e => selecionarFiel(cargo, Number(e.target.value))}>
                 <option value="">Selecione um fiel...</option>
                 {fieis.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
               </select>
-              <input placeholder="Tel" style={inS_compact} value={(pastoralDraft as any)[`${cargo}_tel`] || ""} readOnly />
+              <input placeholder="Tel" style={inS_compact} value={(pastoralDraft as Record<string, string | number | null>)[`${cargo}_tel`] || ""} readOnly />
             </div>
           ))}
 
@@ -81,7 +81,7 @@ export function PastoralPage({ paroquia, fonte, comunidadeFiltro }: PastoralPage
                     <td style={tdS}><strong>{p.nome}</strong></td>
                     <td style={tdS}>{p.coordenador_nome || '---'}</td>
                     <td style={tdS}>
-                      <button onClick={() => setPastoralDraft(p as any)} style={actionBtn}>✏️</button>
+                      <button onClick={() => setPastoralDraft(p as typeof pastoralDraft)} style={actionBtn}>✏️</button>
                       {p.id !== undefined && <button onClick={() => excluirPastoral(p.id!)} style={{...actionBtn, color: 'red'}}>🗑️</button>}
                     </td>
                   </tr>

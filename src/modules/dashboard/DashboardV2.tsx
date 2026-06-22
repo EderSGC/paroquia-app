@@ -145,7 +145,7 @@ export function DashboardV2({ paroquia, usuario }: Props) {
       }
     })();
     return () => { cancelled = true; };
-  }, [anoAtual, anoMes]);
+  }, [anoAtual, anoMes, usuario.comunidade_nome]);
 
   const fmt = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);

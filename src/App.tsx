@@ -5,7 +5,7 @@ import { ToastProvider } from "./core/ui/Toast";
 import { UpdateChecker } from "./core/ui/UpdateChecker";
 
 import { getParoquiaAtual, registrarLogout } from "./modules/auth/services/auth.service";
-import { iniciarBackupAutomatico } from "./core/services/backup.service";
+import { iniciarBackupAutomatico, pararBackupAutomatico } from "./core/services/backup.service";
 import { garantirPastaDocumentos } from "./core/utils/pdfGenerator";
 import { SECURITY } from "./core/config/constants";
 import { setCurrentUserId } from "./core/repository/BaseRepository";
@@ -64,7 +64,7 @@ export default function App() {
   const carregarSistema = useCallback(async () => {
     try {
       setLoading(true);
-      garantirPastaDocumentos(); // cria ~/Documents/Sistema Paroquial/ em background
+      garantirPastaDocumentos().catch(() => {});
 
       const paroquiaAtual =
         await getParoquiaAtual();
@@ -99,14 +99,16 @@ export default function App() {
   };
 
   const finalizarSetup = async () => {
-    const paroquiaAtual =
-      await getParoquiaAtual();
-
-    if (paroquiaAtual) {
-      setParoquia(paroquiaAtual);
+    try {
+      const paroquiaAtual = await getParoquiaAtual();
+      if (paroquiaAtual) {
+        setParoquia(paroquiaAtual);
+      }
+      setTela("login");
+    } catch (err) {
+      console.error("Erro ao finalizar setup:", err);
+      setError("Erro ao finalizar configuração.");
     }
-
-    setTela("login");
   };
 
   const realizarLogin = (
@@ -119,6 +121,7 @@ export default function App() {
   };
 
   const realizarLogout = () => {
+    pararBackupAutomatico();
     if (usuario) {
       registrarLogout(usuario.id, usuario.nome).catch(() => {});
       setCurrentUserId(0);

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { AppLogo } from "../../../core/ui/AppLogo";
 import type { Paroquia, Usuario } from "../../../core/types/app.types";
 import { autenticarUsuario, redefinirSenha } from "../services/auth.service";
+import { logger } from "@core/utils/logger";
 
 interface LoginScreenProps {
   paroquia: Paroquia;
@@ -69,14 +70,14 @@ export function LoginScreen({ paroquia, onLogin }: LoginScreenProps) {
     setErro("");
 
     try {
-      console.log("Iniciando autenticação para:", loginVal);
+      logger.log("Iniciando autenticação para:", loginVal);
       const usuario = await autenticarUsuario(loginVal, senha);
 
       if (usuario) {
-        console.log("Autenticação bem-sucedida:", usuario.nome);
+        logger.log("Autenticação bem-sucedida:", usuario.nome);
         onLogin(usuario);
       } else {
-        console.warn("Falha na autenticação: credenciais inválidas");
+        logger.warn("Falha na autenticação: credenciais inválidas");
         setErro("Login ou senha incorretos. Verifique com cuidado e tente novamente.");
       }
     } catch (erro) {
@@ -131,7 +132,7 @@ export function LoginScreen({ paroquia, onLogin }: LoginScreenProps) {
         return;
       }
 
-      console.log("Senha redefinida com sucesso");
+      logger.log("Senha redefinida com sucesso");
       setMensagem("✅ Senha atualizada com sucesso! Agora você pode entrar com a nova senha.");
       setSenha("");
       setLoginVal("");

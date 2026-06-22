@@ -6,6 +6,7 @@ import { getDb } from '@core/database';
 import { normalizeText } from '@core/utils/validators';
 
 interface GrupoDraft {
+  [key: string]: string | number | null | undefined;
   id?: number;
   nome: string;
   categoria: string;
@@ -126,9 +127,9 @@ export function useGrupos() {
         tesoureiro_tel: grupoDraft.tesoureiro_tel, tesoureiro_email: grupoDraft.tesoureiro_email,
       };
       if (grupoDraft.id) {
-        await PastoralRepository.grupos.update(grupoDraft.id, campos as any);
+        await PastoralRepository.grupos.update(grupoDraft.id, campos as never);
       } else {
-        await PastoralRepository.grupos.create(campos as any);
+        await PastoralRepository.grupos.create(campos as never);
       }
       showToast("Grupo salvo com sucesso!", "success");
       limparDraft();
@@ -153,22 +154,37 @@ export function useGrupos() {
   const editarGrupo = (grupo: GrupoDraft) => setGrupoDraft(grupo);
 
   const carregarMembrosGrupo = async (grupoId: number) => {
-    const res = await PastoralRepository.grupoMembros.findByGrupo(grupoId);
-    setMembrosGrupo(res);
+    try {
+      const res = await PastoralRepository.grupoMembros.findByGrupo(grupoId);
+      setMembrosGrupo(res);
+    } catch (err) {
+      console.error("Erro ao carregar membros:", err);
+      showToast("Erro ao carregar membros do grupo.", "error");
+    }
   };
 
   const vincularMembro = async (grupoId: number, fielId: number, cargo: string) => {
-    const ok = await PastoralRepository.grupoMembros.vincular(grupoId, fielId, cargo);
-    if (!ok) { showToast("Este fiel já é membro deste grupo.", "info"); return; }
-    showToast("Membro adicionado!", "success");
-    await carregarMembrosGrupo(grupoId);
-    await carregarGrupos();
+    try {
+      const ok = await PastoralRepository.grupoMembros.vincular(grupoId, fielId, cargo);
+      if (!ok) { showToast("Este fiel já é membro deste grupo.", "info"); return; }
+      showToast("Membro adicionado!", "success");
+      await carregarMembrosGrupo(grupoId);
+      await carregarGrupos();
+    } catch (err) {
+      console.error("Erro ao vincular membro:", err);
+      showToast("Erro ao adicionar membro.", "error");
+    }
   };
 
   const removerMembro = async (id: number, grupoId: number) => {
-    await PastoralRepository.grupoMembros.hardDelete(id);
-    await carregarMembrosGrupo(grupoId);
-    await carregarGrupos();
+    try {
+      await PastoralRepository.grupoMembros.hardDelete(id);
+      await carregarMembrosGrupo(grupoId);
+      await carregarGrupos();
+    } catch (err) {
+      console.error("Erro ao remover membro:", err);
+      showToast("Erro ao remover membro.", "error");
+    }
   };
 
   return {

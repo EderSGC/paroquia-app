@@ -1,6 +1,7 @@
 import Database from "@tauri-apps/plugin-sql";
 import { EXPECTED_SCHEMA } from "./schema";
 import type { TableSchema } from "./types";
+import { logger } from "@core/utils/logger";
 
 interface SQLiteColumn {
   name: string;
@@ -13,7 +14,7 @@ export async function getTableInfo(
 ): Promise<Record<string, string>> {
   try {
     const result = await db.select<SQLiteColumn[]>(
-      `PRAGMA table_info(${tableName})`
+      `PRAGMA table_info("${tableName}")`
     );
 
     const columns: Record<string, string> = {};
@@ -55,7 +56,7 @@ export async function createTableFromSchema(
     (${columnDefs})
   `);
 
-  console.log(`✅ Tabela ${tableSchema.name} criada/verificada`);
+  logger.log(`✅ Tabela ${tableSchema.name} criada/verificada`);
 }
 
 // SQLite proíbe DEFAULT CURRENT_TIMESTAMP / funções em ALTER TABLE ADD COLUMN.
@@ -85,9 +86,9 @@ export async function addMissingColumns(
       try {
         await db.execute(sql);
         addedColumns.push(column.name);
-        console.log(`✅ Coluna ${column.name} adicionada em ${tableSchema.name}`);
+        logger.log(`✅ Coluna ${column.name} adicionada em ${tableSchema.name}`);
       } catch (error) {
-        console.warn(`⚠️  ${tableSchema.name}.${column.name}: ${error}`);
+        logger.warn(`⚠️  ${tableSchema.name}.${column.name}: ${error}`);
       }
     }
   }
@@ -98,7 +99,7 @@ export async function addMissingColumns(
 export async function validateAndSyncSchema(
   db: Database
 ): Promise<void> {
-  console.log(
+  logger.log(
     "🔍 Iniciando validação de schema..."
   );
 
@@ -142,25 +143,25 @@ export async function validateAndSyncSchema(
     });
   }
 
-  console.log("\n================================");
+  logger.log("\n================================");
 
   report.forEach((item) => {
     if (item.created) {
-      console.log(
+      logger.log(
         `✅ [CRIADA] ${item.table}`
       );
     } else if (
       item.columnsAdded.length
     ) {
-      console.log(
+      logger.log(
         `✅ [ATUALIZADA] ${item.table}`
       );
     } else {
-      console.log(
+      logger.log(
         `✅ [OK] ${item.table}`
       );
     }
   });
 
-  console.log("================================");
+  logger.log("================================");
 }

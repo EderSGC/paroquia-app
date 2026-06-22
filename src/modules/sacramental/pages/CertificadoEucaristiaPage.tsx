@@ -109,7 +109,7 @@ export function CertificadoEucaristiaPage({ paroquia }: Props) {
           </summary>
           <div style={{ paddingTop: "8px" }}>
             <RegistrosList tipo="EUCARISTIA" busca={busca} recarregarKey={0}
-              onSelecionar={(d) => { const data = d as Record<string, string>; setForm(f => ({ ...f, fiel: data.nome || f.fiel, dataEucaristia: data.dataComunhao || f.dataEucaristia, local: data.local || f.local, catequista: data.catequista || f.catequista, celebrante: data.catequista || f.celebrante })); }} />
+              onSelecionar={(d) => { const data = d as Record<string, string>; setForm(f => ({ ...f, fiel: data.nome || f.fiel, dataEucaristia: data.dataComunhao || f.dataEucaristia, local: data.local || f.local, catequista: data.catequista || f.catequista, celebrante: data.celebrante || f.celebrante })); }} />
           </div>
         </details>
         <BuscarFielPastoral onSelecionar={f => { setForm(prev => ({ ...prev, fiel: f.nome })); setFielId(f.id); }} label="Buscar Fiel no Módulo Pastoral" />

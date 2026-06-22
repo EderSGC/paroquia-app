@@ -1,4 +1,5 @@
 import Database from "@tauri-apps/plugin-sql";
+import { logger } from "@core/utils/logger";
 
 /**
  * Tabelas que têm coluna updated_at e devem tê-la mantida automaticamente.
@@ -59,7 +60,7 @@ export async function createUpdatedAtTriggers(db: Database): Promise<void> {
       ok++;
     } catch { skip++; }
   }
-  console.log(`✅ Triggers updated_at: ${ok} criadas, ${skip} ignoradas (coluna ausente)`);
+  logger.log(`✅ Triggers updated_at: ${ok} criadas, ${skip} ignoradas (coluna ausente)`);
 }
 
 /**

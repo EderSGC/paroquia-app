@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFinanceiroStore, Lancamento } from '../services';
 import { getDb } from '@core/database';
 import { FinanceiroRepository } from '../repository/financeiro.repository';
@@ -81,7 +81,7 @@ export const useFinanceiro = (options: UseFinanceiroOptions = {}) => {
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
-  }, [setDizimos]);
+  }, [setDizimos, comunidadeNomeFiltro]);
 
   const registrar = async () => {
     if (!valor || (!nome && !fielId)) { showToast("Preencha os campos obrigatórios.", "error"); return; }
@@ -187,15 +187,22 @@ export const useFinanceiro = (options: UseFinanceiroOptions = {}) => {
 
   useEffect(() => { carregarDados(); }, [carregarDados]);
 
+  const dadosFiltradosMemo = useMemo(() =>
+    dizimos.filter(i => i.categoria === abaAtiva && (filtroUnidade === 'TODOS' || i.origem === filtroUnidade)),
+    [dizimos, abaAtiva, filtroUnidade]
+  );
+  const resumoMemo = useMemo(() => calcularResumo(), [dizimos, configPartilha]);
+  const partilhaMemo = useMemo(() => calcularPartilha(), [dizimos, configPartilha]);
+
   return {
     abaAtiva, setAbaAtiva, busca, setBusca, unidadeRegistro, setUnidadeRegistro,
     filtroUnidade, setFiltroUnidade, bloqueado,
     comunidades, fieis, fielId, setFielId, registrar, apagarRegistro,
     exportarCSV, totalGeral: dizimos, nome, setNome, valor, setValor,
     data, setData, metodo, setMetodo, tipoFluxo, setTipoFluxo,
-    dadosFiltrados: dizimos.filter(i => i.categoria === abaAtiva && (filtroUnidade === 'TODOS' || i.origem === filtroUnidade)),
-    resumo: calcularResumo(),
-    partilha: calcularPartilha(),
+    dadosFiltrados: dadosFiltradosMemo,
+    resumo: resumoMemo,
+    partilha: partilhaMemo,
     calcularPartilha,
     configPartilha,
     buscarFechamento,

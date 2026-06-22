@@ -1,4 +1,5 @@
 import Database from "@tauri-apps/plugin-sql";
+import { logger } from "@core/utils/logger";
 
 import { EXPECTED_SCHEMA } from "./schema";
 import {
@@ -10,7 +11,7 @@ import {
 export async function validateAndSyncSchema(
   db: Database
 ): Promise<void> {
-  console.log(
+  logger.log(
     "🔍 Iniciando validação e sincronização de schema..."
   );
 
@@ -54,27 +55,27 @@ export async function validateAndSyncSchema(
     });
   }
 
-  console.log("\n============================================================");
-  console.log("📊 RELATÓRIO DE MIGRAÇÃO DE SCHEMA");
-  console.log("============================================================");
+  logger.log("\n============================================================");
+  logger.log("📊 RELATÓRIO DE MIGRAÇÃO DE SCHEMA");
+  logger.log("============================================================");
 
   report.forEach((item) => {
     if (item.created) {
-      console.log(
+      logger.log(
         `✅ [CRIADA] Tabela '${item.table}'`
       );
     } else if (item.columnsAdded.length > 0) {
-      console.log(
+      logger.log(
         `✅ [ATUALIZADA] Tabela '${item.table}' - Colunas adicionadas: ${item.columnsAdded.join(", ")}`
       );
     } else {
-      console.log(
+      logger.log(
         `✅ [OK] Tabela '${item.table}' - Nenhuma alteração necessária`
       );
     }
   });
 
-  console.log("============================================================");
-  console.log("✅ Schema sincronizado com sucesso!");
-  console.log("============================================================\n");
+  logger.log("============================================================");
+  logger.log("✅ Schema sincronizado com sucesso!");
+  logger.log("============================================================\n");
 }

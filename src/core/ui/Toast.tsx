@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react";
 
 export type ToastType = "success" | "error" | "info";
 
@@ -16,11 +16,20 @@ const ToastContext = createContext<ToastContextValue>({ showToast: () => {} });
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => { timersRef.current.forEach(t => clearTimeout(t)); };
+  }, []);
 
   const showToast = useCallback((message: string, type: ToastType = "info") => {
     const id = Date.now() + Math.random();
     setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500);
+    const timer = setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+      timersRef.current.delete(timer);
+    }, 3500);
+    timersRef.current.add(timer);
   }, []);
 
   const bgColor = (type: ToastType) => {

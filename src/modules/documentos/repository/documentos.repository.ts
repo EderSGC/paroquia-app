@@ -8,7 +8,7 @@ class DocumentoRegistroRepositoryClass extends BaseRepository<DocumentoRegistro>
   async findByTipo(tipo: string): Promise<DocumentoRegistro[]> {
     const db = await getDb();
     return db.select<DocumentoRegistro[]>(
-      'SELECT * FROM documentos_registros WHERE tipo = $1 ORDER BY id DESC',
+      'SELECT * FROM documentos_registros WHERE tipo = ? ORDER BY id DESC',
       [tipo]
     );
   }
@@ -16,7 +16,7 @@ class DocumentoRegistroRepositoryClass extends BaseRepository<DocumentoRegistro>
   async countByTipoAno(tipo: string, ano: number): Promise<number> {
     const db = await getDb();
     const rows = await db.select<{ c: number }[]>(
-      'SELECT COUNT(*) as c FROM documentos_registros WHERE tipo = $1 AND numero_protocolo LIKE $2',
+      'SELECT COUNT(*) as c FROM documentos_registros WHERE tipo = ? AND numero_protocolo LIKE ?',
       [tipo, `%/${ano}`]
     );
     return rows[0]?.c ?? 0;

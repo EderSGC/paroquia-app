@@ -1,4 +1,5 @@
 import Database from "@tauri-apps/plugin-sql";
+import { logger } from "@core/utils/logger";
 
 /** Verifica se uma tabela já possui FK constraints definidas. */
 async function hasForeignKeys(db: Database, tableName: string): Promise<boolean> {
@@ -35,9 +36,10 @@ async function nullifyOrphans(
   `).catch(() => [] as { id: number }[]);
 
   if (orphans.length > 0) {
-    const ids = orphans.map(o => o.id).join(",");
-    await db.execute(`UPDATE "${tableName}" SET "${column}" = NULL WHERE id IN (${ids})`);
-    console.warn(`  ⚠️  ${tableName}.${column}: ${orphans.length} órfão(s) → NULL`);
+    const placeholders = orphans.map((_, i) => `$${i + 1}`).join(",");
+    const ids = orphans.map(o => o.id);
+    await db.execute(`UPDATE "${tableName}" SET "${column}" = NULL WHERE id IN (${placeholders})`, ids);
+    logger.warn(`  ⚠️  ${tableName}.${column}: ${orphans.length} órfão(s) → NULL`);
   }
   return orphans.length;
 }
@@ -82,7 +84,7 @@ interface RecreateConfig {
 async function recreateTableWithFKs(db: Database, cfg: RecreateConfig): Promise<boolean> {
   try {
     if (await hasForeignKeys(db, cfg.tableName)) {
-      console.log(`  ✔  ${cfg.tableName}: FK já existe, pulando`);
+      logger.log(`  ✔  ${cfg.tableName}: FK já existe, pulando`);
       return true;
     }
 
@@ -93,7 +95,7 @@ async function recreateTableWithFKs(db: Database, cfg: RecreateConfig): Promise<
     ).then(r => Number(Object.values(r[0] ?? {})[0] ?? 0) > 0).catch(() => false);
 
     if (hasOldTable) {
-      console.warn(`  ♻️  ${cfg.tableName}: restaurando de execução anterior interrompida`);
+      logger.warn(`  ♻️  ${cfg.tableName}: restaurando de execução anterior interrompida`);
       await db.execute(`DROP TABLE IF EXISTS "${cfg.tableName}"`).catch(() => {});
       await db.execute(`ALTER TABLE "${cfg.tableName}_old" RENAME TO "${cfg.tableName}"`).catch(() => {});
     }
@@ -134,7 +136,7 @@ async function recreateTableWithFKs(db: Database, cfg: RecreateConfig): Promise<
       for (const sql of (cfg.indexesSQL ?? [])) {
         await db.execute(sql).catch(() => {});
       }
-      console.log(
+      logger.log(
         `  ✅ ${cfg.tableName}: FK criada` +
         (totalOrphans ? ` (${totalOrphans} órfão(s) limpos)` : "")
       );
@@ -158,7 +160,7 @@ async function recreateTableWithFKs(db: Database, cfg: RecreateConfig): Promise<
  */
 async function ensureCaixaFechamentoUnique(db: Database): Promise<void> {
   if (await hasUniqueIndex(db, "caixa_fechamento", ["data", "unidade"])) {
-    console.log("  ✔  caixa_fechamento: UNIQUE(data, unidade) já existe");
+    logger.log("  ✔  caixa_fechamento: UNIQUE(data, unidade) já existe");
     return;
   }
 
@@ -202,7 +204,7 @@ async function ensureCaixaFechamentoUnique(db: Database): Promise<void> {
  * Cada operação é idempotente: hasForeignKeys() pula se FK já existe.
  */
 export async function createForeignKeys(db: Database): Promise<void> {
-  console.log("════ Foreign Keys ════");
+  logger.log("════ Foreign Keys ════");
 
   // 1. membros_familia → familias + fieis
   await recreateTableWithFKs(db, {
@@ -623,5 +625,5 @@ export async function createForeignKeys(db: Database): Promise<void> {
     ],
   });
 
-  console.log("════ FK concluído ════");
+  logger.log("════ FK concluído ════");
 }

@@ -44,51 +44,71 @@ export function useCrud<T extends RecordType>(table: string) {
   }
 
   async function create(item: Partial<T>) {
-    const db = await getDb();
-    const keys = Object.keys(item);
-    const values = Object.values(item);
-    const placeholders = keys.map((_, i) => `$${i + 1}`).join(",");
-    const quotedKeys = keys.map(k => `"${k}"`).join(",");
+    try {
+      const db = await getDb();
+      const keys = Object.keys(item);
+      const values = Object.values(item);
+      const placeholders = keys.map((_, i) => `$${i + 1}`).join(",");
+      const quotedKeys = keys.map(k => `"${k}"`).join(",");
 
-    await db.execute(
-      `INSERT INTO "${table}" (${quotedKeys}) VALUES (${placeholders})`,
-      values
-    );
+      await db.execute(
+        `INSERT INTO "${table}" (${quotedKeys}) VALUES (${placeholders})`,
+        values
+      );
 
-    await list();
+      await list();
+    } catch (err) {
+      setError((err as Error).message);
+      throw err;
+    }
   }
 
   async function update(id: number, item: Partial<T>) {
-    const db = await getDb();
-    const keys = Object.keys(item);
-    const set = keys.map((k, i) => `"${k}" = $${i + 1}`).join(", ");
+    try {
+      const db = await getDb();
+      const keys = Object.keys(item);
+      const set = keys.map((k, i) => `"${k}" = $${i + 1}`).join(", ");
 
-    await db.execute(
-      `UPDATE "${table}" SET ${set} WHERE id = $${keys.length + 1}`,
-      [...Object.values(item), id]
-    );
+      await db.execute(
+        `UPDATE "${table}" SET ${set} WHERE id = $${keys.length + 1}`,
+        [...Object.values(item), id]
+      );
 
-    await list();
+      await list();
+    } catch (err) {
+      setError((err as Error).message);
+      throw err;
+    }
   }
 
   async function remove(id: number) {
-    const db = await getDb();
-    await db.execute(`DELETE FROM "${table}" WHERE id = $1`, [id]);
-    await list();
+    try {
+      const db = await getDb();
+      await db.execute(`DELETE FROM "${table}" WHERE id = $1`, [id]);
+      await list();
+    } catch (err) {
+      setError((err as Error).message);
+      throw err;
+    }
   }
 
   async function findById(id: number): Promise<T | null> {
-    const db = await getDb();
-    const result = await db.select<T[]>(
-      `SELECT * FROM "${table}" WHERE id = $1`,
-      [id]
-    );
-    return result?.[0] ?? null;
+    try {
+      const db = await getDb();
+      const result = await db.select<T[]>(
+        `SELECT * FROM "${table}" WHERE id = $1`,
+        [id]
+      );
+      return result?.[0] ?? null;
+    } catch (err) {
+      setError((err as Error).message);
+      return null;
+    }
   }
 
   useEffect(() => {
     list();
-  }, []);
+  }, [table]);
 
   return { data, loading, error, list, create, update, remove, findById };
 }

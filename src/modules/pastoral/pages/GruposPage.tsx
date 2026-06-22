@@ -7,7 +7,7 @@ import type { Paroquia } from '../../../core/types/app.types';
 interface GruposPageProps { paroquia?: Paroquia | null; fonte?: string; comunidadeFiltro?: string | null; }
 
 export function GruposPage({ paroquia, fonte, comunidadeFiltro }: GruposPageProps) {
-  void paroquia; void fonte;
+  void fonte;
   const {
     grupos, grupoDraft, setGrupoDraft, salvarGrupo, excluirGrupo, editarGrupo, limparDraft,
     membrosGrupo, carregarMembrosGrupo, vincularMembro, removerMembro,
@@ -19,7 +19,7 @@ export function GruposPage({ paroquia, fonte, comunidadeFiltro }: GruposPageProp
   const [cargoAdd, setCargoAdd] = useState("Membro");
 
   const filtrados = grupos
-    .filter(g => !comunidadeFiltro || (g as any).comunidade === comunidadeFiltro)
+    .filter(g => !comunidadeFiltro || (g as Record<string, string | number | null>).comunidade === comunidadeFiltro)
     .filter(g => g.nome.toLowerCase().includes(busca.toLowerCase()));
 
   const maskPhone = (v: string) => {
@@ -86,11 +86,11 @@ export function GruposPage({ paroquia, fonte, comunidadeFiltro }: GruposPageProp
             {(['coordenador', 'vice', 'secretario', 'tesoureiro'] as const).map(cargo => (
               <div key={cargo} style={cargoBox}>
                 <span style={labelCargo}>{cargo.toUpperCase()}</span>
-                <select style={inputStyle} value={(grupoDraft as any)[`${cargo}_id`] ?? ""} onChange={e => selecionarLider(cargo, e.target.value)}>
+                <select style={inputStyle} value={(grupoDraft as Record<string, string | number | null>)[`${cargo}_id`] ?? ""} onChange={e => selecionarLider(cargo, e.target.value)}>
                   <option value="">Selecione um fiel...</option>
                   {fieis.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                 </select>
-                <input placeholder="Tel" style={inputStyle} value={(grupoDraft as any)[`${cargo}_tel`] || ""} onChange={e => setGrupoDraft({...grupoDraft, [`${cargo}_tel`]: maskPhone(e.target.value)})} readOnly />
+                <input placeholder="Tel" style={inputStyle} value={(grupoDraft as Record<string, string | number | null>)[`${cargo}_tel`] || ""} onChange={e => setGrupoDraft({...grupoDraft, [`${cargo}_tel`]: maskPhone(e.target.value)})} readOnly />
               </div>
             ))}
           </div>

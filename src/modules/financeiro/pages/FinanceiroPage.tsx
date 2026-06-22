@@ -40,7 +40,7 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
 
   const {
     comunidades, calcularPartilha, configPartilha,
-    buscarFechamento, salvarFechamento, getLancamentosDia,
+    buscarFechamento, salvarFechamento,
     carregarDados, totalGeral,
   } = useFinanceiro({ comunidadeNomeFiltro, usuarioId: usuario?.id });
   const { showToast } = useToast();
@@ -939,7 +939,7 @@ export function FinanceiroPage({ paroquia, usuario }: FinanceiroPageProps) {
             </thead>
             <tbody>
               {lancamentosHist.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: '#98a2b3' }}>Nenhum lançamento no período.</td></tr>
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 24, color: '#98a2b3' }}>Nenhum lançamento no período.</td></tr>
               ) : lancamentosHist.map((l) => (
                 <tr key={l.id} style={{ borderBottom: '1px solid #f2f4f7' }}>
                   <td style={{ padding: '8px 10px', color: '#667085' }}>{(l.data ?? '').split('-').reverse().join('/')}</td>

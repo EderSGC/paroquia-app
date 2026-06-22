@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react";
 
 export type ModuleId =
   | "dashboard" | "agenda"
@@ -85,30 +85,36 @@ export function WorkspaceProvider({ initialModule = "dashboard", children }: {
   const [panelOpen, setPanelOpen] = useState(loadPanelPref);
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
 
-  function navigate(mod: ModuleId | string, sub?: string) {
+  const navigate = useCallback((mod: ModuleId | string, sub?: string) => {
     setActiveModule(mod as ModuleId);
     setSubPage(sub);
-    setSelectedItem(null); // limpa seleção ao trocar de módulo
-  }
+    setSelectedItem(null);
+  }, []);
 
-  function togglePanel() {
+  const togglePanel = useCallback(() => {
     setPanelOpen(prev => {
       const next = !prev;
       try { localStorage.setItem("ws-panel-open", String(next)); } catch {}
       return next;
     });
-  }
+  }, []);
 
-  function selectItem(item: SelectedItem | null) {
+  const selectItem = useCallback((item: SelectedItem | null) => {
     setSelectedItem(item);
-    if (item && !panelOpen) {
-      setPanelOpen(true);
-      try { localStorage.setItem("ws-panel-open", "true"); } catch {}
+    if (item) {
+      setPanelOpen(prev => {
+        if (!prev) try { localStorage.setItem("ws-panel-open", "true"); } catch {}
+        return true;
+      });
     }
-  }
+  }, []);
+
+  const value = useMemo(() => ({
+    activeModule, subPage, navigate, panelOpen, togglePanel, selectedItem, selectItem
+  }), [activeModule, subPage, navigate, panelOpen, togglePanel, selectedItem, selectItem]);
 
   return (
-    <Ctx.Provider value={{ activeModule, subPage, navigate, panelOpen, togglePanel, selectedItem, selectItem }}>
+    <Ctx.Provider value={value}>
       {children}
     </Ctx.Provider>
   );

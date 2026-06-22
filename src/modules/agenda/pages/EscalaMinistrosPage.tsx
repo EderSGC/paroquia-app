@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import type { Paroquia } from "../../../core/types/app.types";
 import { DocumentHeader } from "@core/components/DocumentHeader";
@@ -42,6 +42,8 @@ export function EscalaMinistrosPage({ paroquia }: { paroquia: Paroquia }) {
   ]);
   const [salvo, setSalvo] = useState(false);
 
+  const carregouRef = useRef(false);
+
   // Carrega rascunho salvo ao montar
   useEffect(() => {
     try {
@@ -52,10 +54,12 @@ export function EscalaMinistrosPage({ paroquia }: { paroquia: Paroquia }) {
         if (p) setPeriodo(p);
       }
     } catch {}
+    carregouRef.current = true;
   }, []);
 
-  // Salva automaticamente ao modificar
+  // Salva automaticamente ao modificar (só após o carregamento inicial)
   useEffect(() => {
+    if (!carregouRef.current) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ escalas, periodo }));
     setSalvo(true);
     const t = setTimeout(() => setSalvo(false), 1500);

@@ -8,7 +8,7 @@ use font_kit::handle::Handle;
 
 #[tauri::command]
 fn navegar(window: tauri::Window, modulo: String) {
-    window.emit("navegar", modulo).unwrap();
+    let _ = window.emit("navegar", modulo);
 }
 
 #[tauri::command]
@@ -25,7 +25,8 @@ fn buscar_fontes_sistema() -> Vec<String> {
 
 #[tauri::command]
 fn imprimir_pdf(pdf_bytes: Vec<u8>, nome_arquivo: String) -> Result<String, String> {
-    let nome = if nome_arquivo.is_empty() { "documento.pdf".to_string() } else { nome_arquivo };
+    let raw_nome = if nome_arquivo.is_empty() { "documento.pdf".to_string() } else { nome_arquivo };
+    let nome = std::path::Path::new(&raw_nome).file_name().unwrap_or_default().to_string_lossy().to_string();
     let tmp = std::env::temp_dir().join(&nome);
     std::fs::write(&tmp, &pdf_bytes).map_err(|e| format!("Erro ao criar arquivo temporário: {}", e))?;
     let caminho_str = tmp.to_string_lossy().to_string();
@@ -111,6 +112,7 @@ pub fn run() {
     ];
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_shell::init())
@@ -127,8 +129,8 @@ pub fn run() {
 
             // ── 1. PARÓQUIA (app menu — primeiro à esquerda no macOS) ──────
             let item_sobre    = MenuItem::with_id(handle, "sobre",  "Sobre o Sistema Paroquial", true, None::<&str>)?;
-            let item_config   = MenuItem::with_id(handle, "config", "Configurações...",          true, Some("cmd+,"))?;
-            let item_sair     = MenuItem::with_id(handle, "sair",   "Sair",                      true, Some("cmd+q"))?;
+            let item_config   = MenuItem::with_id(handle, "config", "Configurações...",          true, Some("CmdOrCtrl+,"))?;
+            let item_sair     = MenuItem::with_id(handle, "sair",   "Sair",                      true, Some("CmdOrCtrl+q"))?;
             let sub_app = Submenu::with_id_and_items(
                 handle, "app", "Paróquia", true,
                 &[
@@ -141,9 +143,9 @@ pub fn run() {
             )?;
 
             // ── 2. ARQUIVO ───────────────────────────────────────────────
-            let item_novo_doc   = MenuItem::with_id(handle, "documentos",       "Novo Documento",   true, Some("cmd+n"))?;
-            let item_novo_fiel  = MenuItem::with_id(handle, "fieis_novo",        "Cadastrar Fiel",   true, Some("cmd+shift+n"))?;
-            let item_backup     = MenuItem::with_id(handle, "menu_backup",       "Fazer Backup",     true, Some("cmd+shift+b"))?;
+            let item_novo_doc   = MenuItem::with_id(handle, "documentos",       "Novo Documento",   true, Some("CmdOrCtrl+n"))?;
+            let item_novo_fiel  = MenuItem::with_id(handle, "fieis_novo",        "Cadastrar Fiel",   true, Some("CmdOrCtrl+shift+n"))?;
+            let item_backup     = MenuItem::with_id(handle, "menu_backup",       "Fazer Backup",     true, Some("CmdOrCtrl+shift+b"))?;
             let item_restaurar  = MenuItem::with_id(handle, "menu_restaurar",    "Restaurar Backup", true, None::<&str>)?;
             let item_fechar     = PredefinedMenuItem::close_window(handle, Some("Fechar Janela"))?;
             let sub_arquivo = Submenu::with_id_and_items(
@@ -175,7 +177,7 @@ pub fn run() {
             )?;
 
             // ── 4. MÓDULOS ────────────────────────────────────────────────
-            let item_painel = MenuItem::with_id(handle, "dashboard", "Painel", true, Some("cmd+1"))?;
+            let item_painel = MenuItem::with_id(handle, "dashboard", "Painel", true, Some("CmdOrCtrl+1"))?;
 
             // Pastoral
             let item_fieis       = MenuItem::with_id(handle, "fieis",       "Fiéis",       true, None::<&str>)?;
@@ -221,7 +223,7 @@ pub fn run() {
             ])?;
 
             // Patrimônio
-            let item_patrimonio = MenuItem::with_id(handle, "patrimonio", "Patrimônio", true, Some("cmd+6"))?;
+            let item_patrimonio = MenuItem::with_id(handle, "patrimonio", "Patrimônio", true, Some("CmdOrCtrl+6"))?;
 
             // Agenda
             let item_ag_eventos  = MenuItem::with_id(handle, "agenda:eventos",  "Eventos Paroquiais",  true, None::<&str>)?;
@@ -342,5 +344,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![navegar, buscar_fontes_sistema, buscar_arquivo_fonte, imprimir_pdf])
         .run(tauri::generate_context!())
-        .expect("Erro ao iniciar o sistema");
+        .unwrap_or_else(|e| {
+            eprintln!("Erro ao iniciar o sistema: {}", e);
+            std::process::exit(1);
+        });
 }

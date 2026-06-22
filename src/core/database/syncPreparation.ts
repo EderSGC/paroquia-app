@@ -1,5 +1,6 @@
 import Database from "@tauri-apps/plugin-sql";
 import { EXPECTED_SCHEMA } from "./schema";
+import { logger } from "@core/utils/logger";
 
 export interface SyncTableReport {
   table: string;
@@ -82,7 +83,7 @@ export async function prepareForSync(db: Database): Promise<SyncPreparationRepor
         alreadyHadUuid,
       });
 
-      console.log(`✅ [sync] ${tableName}: ${withoutUuid.length} UUIDs gerados`);
+      logger.log(`✅ [sync] ${tableName}: ${withoutUuid.length} UUIDs gerados`);
     } catch (err) {
       const msg = `[${tableName}] ${String(err)}`;
       errors.push(msg);
@@ -106,29 +107,29 @@ export async function prepareForSync(db: Database): Promise<SyncPreparationRepor
 }
 
 function logReport(report: SyncPreparationReport): void {
-  console.log("\n════════════════════════════════════════════");
-  console.log("  RELATÓRIO DE PREPARAÇÃO PARA SINCRONIZAÇÃO");
-  console.log("════════════════════════════════════════════");
-  console.log(`  Tabelas processadas : ${report.tablesProcessed}`);
-  console.log(`  Registros migrados  : ${report.totalRecordsMigrated}`);
-  console.log(`  Erros               : ${report.errors.length}`);
-  console.log(`  Concluído em        : ${report.completedAt}`);
-  console.log("────────────────────────────────────────────");
+  logger.log("\n════════════════════════════════════════════");
+  logger.log("  RELATÓRIO DE PREPARAÇÃO PARA SINCRONIZAÇÃO");
+  logger.log("════════════════════════════════════════════");
+  logger.log(`  Tabelas processadas : ${report.tablesProcessed}`);
+  logger.log(`  Registros migrados  : ${report.totalRecordsMigrated}`);
+  logger.log(`  Erros               : ${report.errors.length}`);
+  logger.log(`  Concluído em        : ${report.completedAt}`);
+  logger.log("────────────────────────────────────────────");
 
   for (const t of report.tableReports) {
     if (t.error) {
-      console.warn(`  ❌ ${t.table.padEnd(30)} ERRO: ${t.error}`);
+      logger.warn(`  ❌ ${t.table.padEnd(30)} ERRO: ${t.error}`);
     } else if (t.recordsMigrated > 0) {
-      console.log(`  ✅ ${t.table.padEnd(30)} +${t.recordsMigrated} UUIDs  (${t.alreadyHadUuid} já tinham)`);
+      logger.log(`  ✅ ${t.table.padEnd(30)} +${t.recordsMigrated} UUIDs  (${t.alreadyHadUuid} já tinham)`);
     } else {
-      console.log(`  ✔  ${t.table.padEnd(30)} OK (${t.alreadyHadUuid} registros com UUID)`);
+      logger.log(`  ✔  ${t.table.padEnd(30)} OK (${t.alreadyHadUuid} registros com UUID)`);
     }
   }
 
   if (report.errors.length > 0) {
-    console.warn("\n  ERROS ENCONTRADOS:");
-    report.errors.forEach(e => console.warn(`  • ${e}`));
+    logger.warn("\n  ERROS ENCONTRADOS:");
+    report.errors.forEach(e => logger.warn(`  • ${e}`));
   }
 
-  console.log("════════════════════════════════════════════\n");
+  logger.log("════════════════════════════════════════════\n");
 }

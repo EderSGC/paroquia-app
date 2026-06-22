@@ -13,7 +13,7 @@ export const AgendaRepository = {
       SELECT a.*, f.nome as nome_fiel, f.telefone as telefone_fiel
       FROM agenda_compromissos a
       LEFT JOIN fieis f ON a.fiel_id = f.id
-      WHERE a.categoria = ?
+      WHERE a.categoria = ? AND a.deleted_at IS NULL
       ORDER BY a.data ASC, a.horario ASC
     `, [categoria]);
   },
@@ -39,6 +39,6 @@ export const AgendaRepository = {
 
   async delete(id: number) {
     const db = await getDb();
-    return await db.execute("DELETE FROM agenda_compromissos WHERE id = ?", [id]);
+    return await db.execute("UPDATE agenda_compromissos SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", [id]);
   }
 };

@@ -82,7 +82,7 @@ export function ComunidadesPage({ paroquia, fonte }: { paroquia?: Paroquia | nul
             color: #1f3b73;
             margin-top: 25px !important;
             margin-bottom: 15px !important;
-            font-family: "${fonte}", sans-serif;
+            font-family: "${fonte.replace(/[^a-zA-Z0-9\s\-_]/g, '')}", sans-serif;
           }
 
           /* Tabela impressa */
@@ -90,7 +90,7 @@ export function ComunidadesPage({ paroquia, fonte }: { paroquia?: Paroquia | nul
             width: 100%; 
             border-collapse: collapse; 
             margin-top: 10px;
-            font-family: "${fonte}", sans-serif;
+            font-family: "${fonte.replace(/[^a-zA-Z0-9\s\-_]/g, '')}", sans-serif;
             font-size: 11pt !important;
           }
           #area-impressao-comunidades th, #area-impressao-comunidades td { 

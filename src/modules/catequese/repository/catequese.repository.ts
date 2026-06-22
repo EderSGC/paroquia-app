@@ -76,7 +76,7 @@ class CatequeseMatriculaRepositoryClass extends BaseRepository<CatequeseMatricul
   async findByTurma(turmaId: number): Promise<CatequeseMatricula[]> {
     const db = await getDb();
     return db.select<CatequeseMatricula[]>(
-      'SELECT * FROM catequese_matriculas WHERE turma_id = $1',
+      'SELECT * FROM catequese_matriculas WHERE turma_id = $1 AND deleted_at IS NULL',
       [turmaId]
     );
   }
@@ -130,11 +130,18 @@ class CatequesePresencaRepositoryClass extends BaseRepository<CatequesePresenca>
 
   async registrarChamada(encontroId: number, chamada: PresencaPayloadAluno[]): Promise<void> {
     const db = await getDb();
-    for (const aluno of chamada) {
-      await db.execute(
-        'INSERT INTO catequese_presencas (encontro_id, matricula_id, status, justificativa, observacao) VALUES ($1, $2, $3, $4, $5)',
-        [encontroId, aluno.matricula_id, aluno.status, aluno.justificativa ?? '', aluno.observacao ?? '']
-      );
+    await db.execute('BEGIN TRANSACTION');
+    try {
+      for (const aluno of chamada) {
+        await db.execute(
+          'INSERT INTO catequese_presencas (encontro_id, matricula_id, status, justificativa, observacao) VALUES ($1, $2, $3, $4, $5)',
+          [encontroId, aluno.matricula_id, aluno.status, aluno.justificativa ?? '', aluno.observacao ?? '']
+        );
+      }
+      await db.execute('COMMIT');
+    } catch (error) {
+      await db.execute('ROLLBACK');
+      throw error;
     }
   }
 }

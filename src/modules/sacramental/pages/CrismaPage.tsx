@@ -153,7 +153,7 @@ const styles: { [key: string]: CSSProperties } = {
 };
 
 const dadosVazios: DadosCrisma = {
-  nome: "", dataNasc: "", rgCpf: "", endereco: "", tel: "", email: "", escolaridade: "", paroquiaAtual: "",
+  nome: "", dataNasc: "", rgCpf: "", cpf: "", endereco: "", tel: "", email: "", escolaridade: "", paroquiaAtual: "",
   dataBatismo: "", localBatismo: "", dataEucaristia: "", localEucaristia: "",
   mae: "", pai: "", responsavel: "", estadoCivilPais: "",
   padrinho: "", madrinha: "", estadoCivilCrismando: "", valorTaxa: "", certidaoBatismo: "", certidaoEucaristia: ""
@@ -166,12 +166,7 @@ export function CrismaPage({ paroquia }: CrismaPageProps) {
   const [recarregarKey, setRecarregarKey] = useState(0);
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [fielId, setFielId] = useState<number | null>(null);
-  const [dados, setDados] = useState({
-    nome: "", dataNasc: "", rgCpf: "", endereco: "", tel: "", email: "", escolaridade: "", paroquiaAtual: "",
-    dataBatismo: "", localBatismo: "", dataEucaristia: "", localEucaristia: "",
-    mae: "", pai: "", responsavel: "", estadoCivilPais: "",
-    padrinho: "", madrinha: "", estadoCivilCrismando: "", valorTaxa: "", certidaoBatismo: "", certidaoEucaristia: ""
-  });
+  const [dados, setDados] = useState<DadosCrisma>({ ...dadosVazios });
 
   const atualizar = (campo: string, valor: string) => setDados(p => ({ ...p, [campo]: valor }));
 
@@ -219,7 +214,7 @@ export function CrismaPage({ paroquia }: CrismaPageProps) {
           busca={busca}
           recarregarKey={recarregarKey}
           onExcluir={() => { setEditandoId(null); setDados({ ...dadosVazios }); }}
-          onSelecionar={(d, registro) => { const data = d as Record<string, string>; setEditandoId(registro.id); setDados({ nome: data.nome||"", dataNasc: data.dataNasc||"", rgCpf: data.rgCpf||"", endereco: data.endereco||"", tel: data.tel||"", email: data.email||"", escolaridade: data.escolaridade||"", paroquiaAtual: data.paroquiaAtual||"", dataBatismo: data.dataBatismo||"", localBatismo: data.localBatismo||"", dataEucaristia: data.dataEucaristia||"", localEucaristia: data.localEucaristia||"", mae: data.mae||"", pai: data.pai||"", responsavel: data.responsavel||"", estadoCivilPais: data.estadoCivilPais||"", padrinho: data.padrinho||"", madrinha: data.madrinha||"", estadoCivilCrismando: data.estadoCivilCrismando||"", valorTaxa: data.valorTaxa||"", certidaoBatismo: data.certidaoBatismo||"", certidaoEucaristia: data.certidaoEucaristia||"" }); }}
+          onSelecionar={(d, registro) => { const data = d as Record<string, string>; setEditandoId(registro.id); setDados({ nome: data.nome||"", dataNasc: data.dataNasc||"", rgCpf: data.rgCpf||"", cpf: data.cpf||"", endereco: data.endereco||"", tel: data.tel||"", email: data.email||"", escolaridade: data.escolaridade||"", paroquiaAtual: data.paroquiaAtual||"", dataBatismo: data.dataBatismo||"", localBatismo: data.localBatismo||"", dataEucaristia: data.dataEucaristia||"", localEucaristia: data.localEucaristia||"", mae: data.mae||"", pai: data.pai||"", responsavel: data.responsavel||"", estadoCivilPais: data.estadoCivilPais||"", padrinho: data.padrinho||"", madrinha: data.madrinha||"", estadoCivilCrismando: data.estadoCivilCrismando||"", valorTaxa: data.valorTaxa||"", certidaoBatismo: data.certidaoBatismo||"", certidaoEucaristia: data.certidaoEucaristia||"" }); }}
         />
 
         {/* 1. DADOS PESSOAIS */}
@@ -231,7 +226,7 @@ export function CrismaPage({ paroquia }: CrismaPageProps) {
         <div style={styles.row}>
           <div style={styles.fieldGroup}><label style={styles.label}>Data de Nascimento</label><input style={styles.input} type="date" value={dados.dataNasc} onChange={e => atualizar('dataNasc', e.target.value)} /></div>
           <div style={styles.fieldGroup}><label style={styles.label}>RG</label><input style={styles.input} value={dados.rgCpf} onChange={e => atualizar('rgCpf', e.target.value)} /></div>
-          <div style={styles.fieldGroup}><label style={styles.label}>CPF</label><input style={styles.input} value={dados.estadoCivilCrismando} onChange={e => atualizar('estadoCivilCrismando', e.target.value)} /></div>
+          <div style={styles.fieldGroup}><label style={styles.label}>CPF</label><input style={styles.input} value={dados.cpf} onChange={e => atualizar('cpf', e.target.value)} /></div>
           <div style={styles.fieldGroup}><label style={styles.label}>Escolaridade (Série/Turma)</label><input style={styles.input} value={dados.escolaridade} onChange={e => atualizar('escolaridade', e.target.value)} /></div>
         </div>
         <div style={styles.fieldGroup}><label style={styles.label}>Endereço Completo (Rua, nº, Bairro, Cidade, Estado)</label><input style={styles.input} value={dados.endereco} onChange={e => atualizar('endereco', e.target.value)} /></div>
@@ -284,7 +279,7 @@ export function CrismaPage({ paroquia }: CrismaPageProps) {
         <div style={styles.buttonGroup}>
           <button style={styles.btnRegistrar} onClick={handleRegistrar}>{editandoId ? "💾 Atualizar" : "Registrar Inscrição"}</button>
           {editandoId && <button onClick={() => { setEditandoId(null); setDados({ ...dadosVazios }); }} style={{ background: "rgba(255,255,255,0.85)", border: "1px solid #d0d5dd", color: "#475467", borderRadius: "16px", cursor: "pointer", padding: "14px 20px", fontWeight: 700 }}>✕ Cancelar Edição</button>}
-          <button style={styles.btnImprimir} onClick={() => gerarPDFCrisma(paroquia, dados as Record<string, string>, fonteDocumento)}>Imprimir Ficha</button>
+          <button style={styles.btnImprimir} onClick={() => gerarPDFCrisma(paroquia, dados as unknown as Record<string, string>, fonteDocumento)}>Imprimir Ficha</button>
         </div>
       </div>
 
@@ -305,7 +300,7 @@ export function CrismaPage({ paroquia }: CrismaPageProps) {
                 </tr>
                 <tr>
                   <td style={{ border: '1px solid #000', padding: '8px' }}><strong>RG:</strong> {dados.rgCpf}</td>
-                  <td style={{ border: '1px solid #000', padding: '8px' }}><strong>CPF:</strong> {dados.estadoCivilCrismando}</td>
+                  <td style={{ border: '1px solid #000', padding: '8px' }}><strong>CPF:</strong> {dados.cpf}</td>
                 </tr>  
                 <tr>
                   <td style={{ border: '1px solid #000', padding: '8px' }}><strong>ESCOLARIDADE:</strong> {dados.escolaridade}</td>

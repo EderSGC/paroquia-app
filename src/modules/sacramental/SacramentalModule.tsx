@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Paroquia } from "../../core/types/app.types";
 import { BatismoPage } from "./pages/BatismoPage";
 import { CrismaPage } from "./pages/CrismaPage";
@@ -27,6 +27,8 @@ const COM_CERTIFICADO = new Set(["BATISMO", "EUCARISTIA", "CRISMA", "MATRIMONIO"
 export function SacramentalModule({ paroquia, abaPadrao }: { paroquia: Paroquia; abaPadrao?: string }) {
   const [subTab, setSubTab] = useState<SubTab>("FICHA");
   const sacramento = abaPadrao ?? "BATISMO";
+
+  useEffect(() => { setSubTab("FICHA"); }, [sacramento]);
   const titulo = TITULOS[sacramento] ?? sacramento;
   const temCertificado = COM_CERTIFICADO.has(sacramento);
 

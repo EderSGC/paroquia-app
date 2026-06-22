@@ -270,9 +270,9 @@ export function PresencaPage({ paroquia: _paroquia, fonte: _fonte }: { paroquia?
                           </td>
                           <td style={tdS} className="no-print">
                              <input style={inS} disabled={aluno.status === 'P'} placeholder={aluno.status !== 'P' ? "Digite uma observação..." : ""} value={aluno.justificativa} onChange={e => {
-                                  const nova = [...listaChamada];
-                                  nova[listaChamada.findIndex(a => a.matricula_id === aluno.matricula_id)].justificativa = e.target.value;
-                                  setListaChamada(nova);
+                                  setListaChamada(prev => prev.map(a =>
+                                    a.matricula_id === aluno.matricula_id ? { ...a, justificativa: e.target.value } : a
+                                  ));
                              }} />
                           </td>
                         </tr>

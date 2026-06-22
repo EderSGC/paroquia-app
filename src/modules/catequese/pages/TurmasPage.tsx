@@ -3,6 +3,7 @@ import { useState, useRef, CSSProperties } from "react";
 import { useCatequese } from "../hooks/useCatequese";
 import { DocumentHeader } from "@core/components/DocumentHeader";
 import { FontSelector } from "@core/components/FontSelector";
+import { logger } from "@core/utils/logger";
 import type { EtapaCatequese } from "../types";
 import type { Paroquia } from "../../../core/types/app.types";
 import type { CatequeseTurma } from "../../../core/types/entities";
@@ -65,7 +66,7 @@ export function TurmasPage({ paroquia, comunidadeNome }: TurmasPageProps) {
   };
 
  const handleAdicionarAluno = async () => {
-  console.log("DEBUG: Iniciando clique...");
+  logger.log("DEBUG: Iniciando clique...");
   
   if (!turmaSelecionada || !turmaSelecionada.id) {
     console.error("DEBUG: Turma não selecionada!");
@@ -85,11 +86,11 @@ export function TurmasPage({ paroquia, comunidadeNome }: TurmasPageProps) {
     nome_catequizando: ficha?.nome
   };
 
-  console.log("DEBUG: Dados que vou enviar para salvar:", payload);
+  logger.log("DEBUG: Dados que vou enviar para salvar:", payload);
 
   try {
     await salvarMatricula(payload);
-    console.log("DEBUG: Função salvarMatricula executada.");
+    logger.log("DEBUG: Função salvarMatricula executada.");
     alert("Aluno adicionado!");
   } catch (err) {
     console.error("DEBUG: Erro na execução:", err);

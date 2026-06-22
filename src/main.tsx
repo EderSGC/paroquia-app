@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { ErrorBoundary } from "./core/ui/ErrorBoundary";
+import { logger } from "./core/utils/logger";
 import App from "./App";
 
 async function bootstrap() {
@@ -18,11 +20,13 @@ async function bootstrap() {
 
   root.render(
     <StrictMode>
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     </StrictMode>
   );
 
-  console.log(
+  logger.log(
     "✅ Sistema Paroquial iniciado."
   );
 }
@@ -33,19 +37,13 @@ bootstrap().catch((error) => {
     error
   );
 
-  document.body.innerHTML = `
-    <div style="
-      height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      flex-direction:column;
-      font-family:system-ui;
-      text-align:center;
-      padding:24px;
-    ">
-      <h1>Erro ao iniciar o sistema</h1>
-      <p>${String(error)}</p>
-    </div>
-  `;
+  const container = document.createElement("div");
+  container.style.cssText = "height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:system-ui;text-align:center;padding:24px;";
+  const h1 = document.createElement("h1");
+  h1.textContent = "Erro ao iniciar o sistema";
+  const p = document.createElement("p");
+  p.textContent = String(error);
+  container.appendChild(h1);
+  container.appendChild(p);
+  document.body.replaceChildren(container);
 });

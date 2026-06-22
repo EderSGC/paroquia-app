@@ -1,4 +1,5 @@
 import Database from "@tauri-apps/plugin-sql";
+import { logger } from "@core/utils/logger";
 
 interface Migration {
   version: number;
@@ -39,9 +40,9 @@ const MIGRATIONS: Migration[] = [
           const count = Number(Object.values(rows[0] ?? {})[0] ?? 0);
           if (count === 0) {
             await db.execute(`DROP TABLE IF EXISTS "${tbl}"`);
-            console.log(`  🗑  ${tbl}: tabela legada removida`);
+            logger.log(`  🗑  ${tbl}: tabela legada removida`);
           } else {
-            console.warn(`  ⚠️  ${tbl}: ${count} registros — mantida para revisão manual`);
+            logger.warn(`  ⚠️  ${tbl}: ${count} registros — mantida para revisão manual`);
           }
         } catch { /* tabela já não existe */ }
       }
@@ -259,14 +260,14 @@ export async function runMigrations(db: Database): Promise<void> {
     if (appliedSet.has(migration.version)) continue;
 
     try {
-      console.log(`  ▶  migration ${migration.version}: ${migration.description}`);
+      logger.log(`  ▶  migration ${migration.version}: ${migration.description}`);
       await migration.up(db);
       await db.execute(
         "INSERT INTO schema_migrations (version, description) VALUES (?, ?)",
         [migration.version, migration.description]
       );
       ran++;
-      console.log(`  ✅ migration ${migration.version} aplicada`);
+      logger.log(`  ✅ migration ${migration.version} aplicada`);
     } catch (e) {
       console.error(`  ❌ migration ${migration.version} falhou:`, e);
       throw e;
@@ -274,8 +275,8 @@ export async function runMigrations(db: Database): Promise<void> {
   }
 
   if (ran === 0) {
-    console.log("  ✔  Nenhuma migration pendente");
+    logger.log("  ✔  Nenhuma migration pendente");
   } else {
-    console.log(`  ✅ ${ran} migration(s) aplicada(s)`);
+    logger.log(`  ✅ ${ran} migration(s) aplicada(s)`);
   }
 }

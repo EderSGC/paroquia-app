@@ -77,7 +77,7 @@ class FamiliaRepositoryClass extends BaseRepository<Familia> {
 }
 
 class MembroFamiliaRepositoryClass extends BaseRepository<MembroFamilia> {
-  constructor() { super('membros_familia', false); }
+  constructor() { super('membros_familia', true); }
 
   async findByFamilia(familiaId: number): Promise<MembroComFiel[]> {
     const db = await getDb();
@@ -131,7 +131,7 @@ class GrupoMembrosRepositoryClass extends BaseRepository<GrupoMembro> {
   async vincular(grupoId: number, fielId: number, cargo: string): Promise<boolean> {
     const db = await getDb();
     const existing = await db.select<{ id: number }[]>(
-      'SELECT id FROM grupo_membros WHERE grupo_id=$1 AND fiel_id=$2',
+      'SELECT id FROM grupo_membros WHERE grupo_id=$1 AND fiel_id=$2 AND deleted_at IS NULL',
       [grupoId, fielId]
     );
     if (existing.length > 0) return false;
@@ -145,7 +145,7 @@ class GrupoMembrosRepositoryClass extends BaseRepository<GrupoMembro> {
   async contagemPorGrupo(): Promise<Record<number, number>> {
     const db = await getDb();
     const rows = await db.select<{ grupo_id: number; total: number }[]>(
-      'SELECT grupo_id, COUNT(*) as total FROM grupo_membros GROUP BY grupo_id'
+      'SELECT gm.grupo_id, COUNT(*) as total FROM grupo_membros gm JOIN fieis f ON f.id = gm.fiel_id AND f.deleted_at IS NULL GROUP BY gm.grupo_id'
     ).catch(() => [] as { grupo_id: number; total: number }[]);
     const mapa: Record<number, number> = {};
     rows.forEach(r => { mapa[r.grupo_id] = r.total; });

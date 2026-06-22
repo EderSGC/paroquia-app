@@ -19,7 +19,7 @@ class PatrimonioManutencaoRepositoryClass extends BaseRepository<PatrimonioManut
   async findByBem(bemId: number): Promise<PatrimonioManutencao[]> {
     const db = await getDb();
     return db.select<PatrimonioManutencao[]>(
-      'SELECT * FROM patrimonio_manutencoes WHERE bem_id = $1 ORDER BY data_manutencao DESC',
+      'SELECT * FROM patrimonio_manutencoes WHERE bem_id = ? ORDER BY data_manutencao DESC',
       [bemId]
     );
   }

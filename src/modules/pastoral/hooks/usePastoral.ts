@@ -59,7 +59,7 @@ export function usePastoral() {
           comunidade_id: comMatch?.id ?? null,
           comunidade: fielDraft.comunidade || "",
           isDizimista: dizimista,
-        } as any);
+        } as never);
       } else {
         const result = await FielService.createFiel({
           nome: fielDraft.nome,

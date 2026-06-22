@@ -25,14 +25,16 @@ class LancamentoRepositoryClass extends BaseRepository<Lancamento> {
   async findEntradas(limit = 100): Promise<Lancamento[]> {
     const db = await getDb();
     return db.select<Lancamento[]>(
-      `SELECT id, descricao, valor, data, categoria, origem FROM lancamentos WHERE tipo='ENTRADA' AND deleted_at IS NULL ORDER BY data DESC, id DESC LIMIT ${limit}`
+      'SELECT id, descricao, valor, data, categoria, origem FROM lancamentos WHERE tipo=\'ENTRADA\' AND deleted_at IS NULL ORDER BY data DESC, id DESC LIMIT ?',
+      [limit]
     );
   }
 
   async findSaidas(limit = 100): Promise<Lancamento[]> {
     const db = await getDb();
     return db.select<Lancamento[]>(
-      `SELECT id, descricao, valor, data, categoria, origem FROM lancamentos WHERE tipo='SAIDA' AND deleted_at IS NULL ORDER BY data DESC, id DESC LIMIT ${limit}`
+      'SELECT id, descricao, valor, data, categoria, origem FROM lancamentos WHERE tipo=\'SAIDA\' AND deleted_at IS NULL ORDER BY data DESC, id DESC LIMIT ?',
+      [limit]
     );
   }
 

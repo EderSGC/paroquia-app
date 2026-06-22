@@ -109,8 +109,13 @@ export const usePatrimonio = (options: UsePatrimonioOptions = {}) => {
   };
 
   const apagarBem = async (id: number) => {
-    await PatrimonioRepository.bens.softDelete(id);
-    await carregarDadosPatrimonio();
+    try {
+      await PatrimonioRepository.bens.softDelete(id);
+      await carregarDadosPatrimonio();
+    } catch (err) {
+      console.error("Erro ao excluir bem:", err);
+      throw err;
+    }
   };
 
   const registrarManutencao = async (bemId: number, descricaoManutencao: string, dataManutencao: string, prestador: string, custo: string, obs: string) => {

@@ -10,9 +10,10 @@ interface Stats {
   cancelados: number;
   catEucaristia: number;
   catCrisma: number;
+  presencaPct: number;
 }
 
-const empty: Stats = { matriculasAtivas: 0, turmasAtivas: 0, concluidos: 0, cancelados: 0, catEucaristia: 0, catCrisma: 0 };
+const empty: Stats = { matriculasAtivas: 0, turmasAtivas: 0, concluidos: 0, cancelados: 0, catEucaristia: 0, catCrisma: 0, presencaPct: 0 };
 
 interface CatequesePanelProps {
   comunidadeNome?: string | null;
@@ -32,31 +33,33 @@ export function CatequesePanel({ comunidadeNome = null }: CatequesePanelProps) {
           return r[0]?.n ?? 0;
         };
 
-        let matriculasAtivas: number, turmasAtivas: number, concluidos: number, cancelados: number, catEucaristia: number, catCrisma: number;
+        let matriculasAtivas: number, turmasAtivas: number, concluidos: number, cancelados: number, catEucaristia: number, catCrisma: number, presencaPct: number;
 
         if (filtrado) {
           const joinCom = "JOIN catequese_turmas t ON t.id=m.turma_id AND t.comunidade=?";
-          [matriculasAtivas, turmasAtivas, concluidos, cancelados, catEucaristia, catCrisma] = await Promise.all([
+          [matriculasAtivas, turmasAtivas, concluidos, cancelados, catEucaristia, catCrisma, presencaPct] = await Promise.all([
             n(`SELECT COUNT(*) as n FROM catequese_matriculas m ${joinCom} WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO')`, [comunidadeNome]),
             n(`SELECT COUNT(DISTINCT m.turma_id) as n FROM catequese_matriculas m ${joinCom} WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO')`, [comunidadeNome]),
             n(`SELECT COUNT(*) as n FROM catequese_matriculas m ${joinCom} WHERE m.situacao='CONCLUIDO'`, [comunidadeNome]),
             n(`SELECT COUNT(*) as n FROM catequese_matriculas m ${joinCom} WHERE m.situacao='CANCELADO'`, [comunidadeNome]),
             n(`SELECT COUNT(*) as n FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Eucaristia%' AND t.comunidade=?`, [comunidadeNome]),
             n(`SELECT COUNT(*) as n FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Crisma%' AND t.comunidade=?`, [comunidadeNome]),
+            n("SELECT COALESCE(ROUND(100.0 * SUM(CASE WHEN p.status='P' THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0)),0) as n FROM catequese_presencas p"),
           ]);
         } else {
-          [matriculasAtivas, turmasAtivas, concluidos, cancelados, catEucaristia, catCrisma] = await Promise.all([
+          [matriculasAtivas, turmasAtivas, concluidos, cancelados, catEucaristia, catCrisma, presencaPct] = await Promise.all([
             n("SELECT COUNT(*) as n FROM catequese_matriculas WHERE situacao NOT IN ('CONCLUIDO','CANCELADO')"),
             n("SELECT COUNT(DISTINCT turma_id) as n FROM catequese_matriculas WHERE situacao NOT IN ('CONCLUIDO','CANCELADO')"),
             n("SELECT COUNT(*) as n FROM catequese_matriculas WHERE situacao='CONCLUIDO'"),
             n("SELECT COUNT(*) as n FROM catequese_matriculas WHERE situacao='CANCELADO'"),
             n("SELECT COUNT(*) as n FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Eucaristia%'"),
             n("SELECT COUNT(*) as n FROM catequese_matriculas m JOIN catequese_turmas t ON t.id=m.turma_id WHERE m.situacao NOT IN ('CONCLUIDO','CANCELADO') AND t.etapa LIKE '%Crisma%'"),
+            n("SELECT COALESCE(ROUND(100.0 * SUM(CASE WHEN p.status='P' THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0)),0) as n FROM catequese_presencas p"),
           ]);
         }
 
         if (cancelled) return;
-        setData({ matriculasAtivas, turmasAtivas, concluidos, cancelados, catEucaristia, catCrisma });
+        setData({ matriculasAtivas, turmasAtivas, concluidos, cancelados, catEucaristia, catCrisma, presencaPct });
       } catch (e) {
         console.error("CatequesePanel:", e);
       }
@@ -64,7 +67,7 @@ export function CatequesePanel({ comunidadeNome = null }: CatequesePanelProps) {
     return () => { cancelled = true; };
   }, [comunidadeNome, filtrado]);
 
-  const presencaMedia = 75;
+  const presencaMedia = data?.presencaPct ?? 0;
 
   return (
     <>

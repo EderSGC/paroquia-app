@@ -6,6 +6,7 @@ import { getDb } from '@core/database';
 import { normalizeText } from '@core/utils/validators';
 
 interface PastoralDraft {
+  [key: string]: string | number | null | undefined;
   id?: number;
   nome: string;
   descricao: string;
@@ -90,9 +91,9 @@ export function usePastorais() {
         tesoureiro_tel: pastoralDraft.tesoureiro_tel,
       };
       if (pastoralDraft.id) {
-        await PastoralRepository.pastorais.update(pastoralDraft.id, campos as any);
+        await PastoralRepository.pastorais.update(pastoralDraft.id, campos as never);
       } else {
-        await PastoralRepository.pastorais.create(campos as any);
+        await PastoralRepository.pastorais.create(campos as never);
       }
       showToast("Pastoral salva com sucesso!", "success");
       setPastoralDraft(estadoInicial);
