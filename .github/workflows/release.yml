@@ -67,7 +67,7 @@ jobs:
             **macOS:** Baixar o .dmg correspondente ao seu processador (aarch64 = Apple Silicon, x64 = Intel)
             **Windows:** Baixar o .msi ou .nsis
             **Linux:** Baixar o .AppImage ou .deb
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
