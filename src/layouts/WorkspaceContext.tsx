@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react";
+import type { Paroquia } from "@core/types/app.types";
 
 export type ModuleId =
   | "dashboard" | "agenda"
@@ -61,6 +62,7 @@ interface WorkspaceCtx {
   togglePanel: () => void;
   selectedItem: SelectedItem | null;
   selectItem: (item: SelectedItem | null) => void;
+  paroquia: Paroquia | null;
 }
 
 const Ctx = createContext<WorkspaceCtx>({
@@ -70,14 +72,16 @@ const Ctx = createContext<WorkspaceCtx>({
   togglePanel: () => {},
   selectedItem: null,
   selectItem: () => {},
+  paroquia: null,
 });
 
 function loadPanelPref(): boolean {
   try { return localStorage.getItem("ws-panel-open") !== "false"; } catch { return true; }
 }
 
-export function WorkspaceProvider({ initialModule = "dashboard", children }: {
+export function WorkspaceProvider({ initialModule = "dashboard", paroquia = null, children }: {
   initialModule?: string;
+  paroquia?: Paroquia | null;
   children: ReactNode;
 }) {
   const [activeModule, setActiveModule] = useState<ModuleId>(initialModule as ModuleId);
@@ -110,8 +114,8 @@ export function WorkspaceProvider({ initialModule = "dashboard", children }: {
   }, []);
 
   const value = useMemo(() => ({
-    activeModule, subPage, navigate, panelOpen, togglePanel, selectedItem, selectItem
-  }), [activeModule, subPage, navigate, panelOpen, togglePanel, selectedItem, selectItem]);
+    activeModule, subPage, navigate, panelOpen, togglePanel, selectedItem, selectItem, paroquia: paroquia ?? null,
+  }), [activeModule, subPage, navigate, panelOpen, togglePanel, selectedItem, selectItem, paroquia]);
 
   return (
     <Ctx.Provider value={value}>

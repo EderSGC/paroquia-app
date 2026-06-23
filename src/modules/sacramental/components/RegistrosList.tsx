@@ -2,9 +2,10 @@ import { useToast } from "@core/ui/Toast";
 import { useState, useEffect, useRef, CSSProperties } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Eye, Printer, FileText } from "lucide-react";
 import { SacramentalRepository } from '../repository/sacramental.repository';
 import { useWorkspace } from "@/layouts/WorkspaceContext";
+import { FichaCompletaModal } from "./FichaCompletaModal";
 
 interface Registro {
   id: number;
@@ -76,7 +77,8 @@ export function RegistrosList({ tipo, busca, onSelecionar, recarregarKey, onExcl
   const [registros, setRegistros]   = useState<Registro[]>([]);
   const [loading, setLoading]       = useState(true);
   const [anoFiltro, setAnoFiltro]   = useState<string | null>(null);
-  const { selectItem, selectedItem } = useWorkspace();
+  const [fichaRegistro, setFichaRegistro] = useState<Registro | null>(null);
+  const { selectItem, selectedItem, paroquia } = useWorkspace();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { carregarRegistros(); }, [tipo, recarregarKey]);
@@ -238,6 +240,9 @@ export function RegistrosList({ tipo, busca, onSelecionar, recarregarKey, onExcl
                     </div>
                   </div>
                   <div className="sacr-row-actions" onClick={e => e.stopPropagation()}>
+                    <button className="sacr-action-btn" title="Visualizar Ficha Completa" onClick={e => {
+                      e.stopPropagation(); setFichaRegistro(r);
+                    }}><Eye size={14} /></button>
                     <button className="sacr-action-btn" title="Editar" onClick={e => {
                       e.stopPropagation();
                       try { onSelecionar(JSON.parse(r.json_dados || "{}"), r); }
@@ -252,6 +257,19 @@ export function RegistrosList({ tipo, busca, onSelecionar, recarregarKey, onExcl
             })}
           </div>
         </div>
+      )}
+
+      {fichaRegistro && paroquia && (
+        <FichaCompletaModal
+          tipo={fichaRegistro.tipo}
+          nomePrincipal={fichaRegistro.nome_principal}
+          dataSacramento={fichaRegistro.data_sacramento}
+          celebrante={fichaRegistro.celebrante}
+          comunidade={fichaRegistro.comunidade}
+          jsonDados={fichaRegistro.json_dados}
+          paroquia={paroquia}
+          onClose={() => setFichaRegistro(null)}
+        />
       )}
     </div>
   );

@@ -273,7 +273,7 @@ export function MacOSWorkspaceLayout({ paroquia, usuario, onParoquiaUpdate, onLo
   const initialModule = isAdmin ? "dashboard" : "pastorais";
 
   return (
-    <WorkspaceProvider initialModule={initialModule}>
+    <WorkspaceProvider initialModule={initialModule} paroquia={paroquia}>
       <WorkspaceShell
         paroquia={paroquia}
         usuario={usuario}

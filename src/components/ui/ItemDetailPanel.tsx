@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Eye, Printer, FileText } from "lucide-react";
 import { getDb } from "@core/database";
 import { useWorkspace, type SelectedItem } from "@/layouts/WorkspaceContext";
 import { PanelSection, PanelDivider } from "@/components/ui/SectionHeader";
+import { FichaCompletaModal } from "@/modules/sacramental/components/FichaCompletaModal";
 
 /* ─── Avatar ──────────────────────────────────────────────────── */
 function Avatar({ nome, size = 48 }: { nome: string; size?: number }) {
@@ -253,6 +254,9 @@ function FielDetail({ item }: { item: FielItem }) {
 type SacrItem = Extract<SelectedItem, { type: "sacramento" }>;
 
 function SacramentoDetail({ item }: { item: SacrItem }) {
+  const { paroquia } = useWorkspace();
+  const [showFicha, setShowFicha] = useState(false);
+
   // Parse json_dados; Batismo usa estrutura aninhada { batizando: {...}, padrinhos: {...} }
   let raw: Record<string, unknown> = {};
   try { raw = JSON.parse(item.jsonDados || "{}") as Record<string, unknown>; } catch {}
@@ -360,6 +364,76 @@ function SacramentoDetail({ item }: { item: SacrItem }) {
             <div style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.6 }}>{observ}</div>
           </PanelSection>
         </>
+      )}
+
+      {/* ── Ações da Ficha ── */}
+      <PanelDivider />
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+        <button
+          onClick={() => setShowFicha(true)}
+          style={{
+            width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            background: "var(--accent)", color: "#fff", border: "none", borderRadius: 10,
+            fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit", transition: "opacity 150ms",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")}
+          onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+        >
+          <Eye size={13} /> Visualizar Ficha Completa
+        </button>
+        {paroquia && (
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={() => {
+                setShowFicha(true);
+                setTimeout(() => {
+                  const btn = document.querySelector("[data-action='print-ficha']") as HTMLButtonElement;
+                  btn?.click();
+                }, 200);
+              }}
+              style={{
+                flex: 1, padding: "9px 10px", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                background: "var(--bg-surface)", color: "var(--text-primary)", border: "1px solid var(--border-card)", borderRadius: 10,
+                fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-elevated)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-surface)")}
+            >
+              <Printer size={12} /> Imprimir
+            </button>
+            <button
+              onClick={() => {
+                setShowFicha(true);
+                setTimeout(() => {
+                  const btn = document.querySelector("[data-action='pdf-ficha']") as HTMLButtonElement;
+                  btn?.click();
+                }, 200);
+              }}
+              style={{
+                flex: 1, padding: "9px 10px", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                background: "var(--bg-surface)", color: "var(--text-primary)", border: "1px solid var(--border-card)", borderRadius: 10,
+                fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-elevated)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-surface)")}
+            >
+              <FileText size={12} /> Gerar PDF
+            </button>
+          </div>
+        )}
+      </div>
+
+      {showFicha && paroquia && (
+        <FichaCompletaModal
+          tipo={item.tipo}
+          nomePrincipal={item.nomePrincipal}
+          dataSacramento={item.dataSacramento}
+          celebrante={item.celebrante}
+          comunidade={item.comunidade}
+          jsonDados={item.jsonDados}
+          paroquia={paroquia}
+          onClose={() => setShowFicha(false)}
+        />
       )}
     </>
   );
