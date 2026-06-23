@@ -76,12 +76,13 @@ jobs:
         shell: bash
         run: |
           mkdir -p sigs
-          find src-tauri/target -name "*.sig" -type f 2>/dev/null | while read f; do
-            basename=$(basename "$f")
-            cp "$f" "sigs/$basename"
-            echo "Found signature: $basename"
+          for f in $(find src-tauri/target -name "*.sig" -type f 2>/dev/null); do
+            bn=$(basename "$f")
+            cp "$f" "sigs/$bn"
+            echo "Found signature: $bn ($(cat "$f" | head -c 40)...)"
           done
-          ls -la sigs/ || echo "No signatures found"
+          echo "Total .sig files: $(ls sigs/*.sig 2>/dev/null | wc -l)"
+          ls -la sigs/ 2>/dev/null || echo "No signatures found"
 
       - name: Upload signatures artifact
         uses: actions/upload-artifact@v4

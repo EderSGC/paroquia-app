@@ -97,6 +97,72 @@ fn buscar_arquivo_fonte(familia: String) -> (Option<String>, Option<String>) {
     (normal, bold)
 }
 
+#[tauri::command]
+fn desinstalar_sistema(app: tauri::AppHandle) -> Result<String, String> {
+    let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
+
+    // Remove banco de dados e arquivos de configuração
+    if app_data.exists() {
+        std::fs::remove_dir_all(&app_data).map_err(|e| format!("Erro ao remover dados: {}", e))?;
+    }
+
+    // Remove cache
+    if let Ok(cache) = app.path().app_cache_dir() {
+        let _ = std::fs::remove_dir_all(&cache);
+    }
+
+    // Remove logs
+    if let Ok(logs) = app.path().app_log_dir() {
+        let _ = std::fs::remove_dir_all(&logs);
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // No Windows, executa o desinstalador nativo se existir
+        let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+        if let Some(install_dir) = exe_path.parent() {
+            let uninstaller = install_dir.join("uninstall.exe");
+            if uninstaller.exists() {
+                let _ = std::process::Command::new(&uninstaller)
+                    .arg("/S") // silent mode
+                    .spawn();
+                return Ok("desinstalador_windows".into());
+            }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        // No macOS, move o .app para a Lixeira
+        let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+        // exe está em App.app/Contents/MacOS/app-name
+        if let Some(app_bundle) = exe_path.parent().and_then(|p| p.parent()).and_then(|p| p.parent()) {
+            let app_path = app_bundle.to_string_lossy().to_string();
+            let script = format!(
+                r#"tell application "Finder" to delete POSIX file "{}""#,
+                app_path
+            );
+            let _ = std::process::Command::new("osascript")
+                .arg("-e")
+                .arg(&script)
+                .output();
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(home) = std::env::var("HOME") {
+            let desktop_file = std::path::PathBuf::from(&home)
+                .join(".local/share/applications/sistema-de-gestao-paroquial.desktop");
+            let _ = std::fs::remove_file(&desktop_file);
+        }
+        let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+        let _ = std::fs::remove_file(&exe_path);
+    }
+
+    Ok("dados_removidos".into())
+}
+
 pub fn run() {
     let migrations = vec![
         Migration {
@@ -342,7 +408,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![navegar, buscar_fontes_sistema, buscar_arquivo_fonte, imprimir_pdf])
+        .invoke_handler(tauri::generate_handler![navegar, buscar_fontes_sistema, buscar_arquivo_fonte, imprimir_pdf, desinstalar_sistema])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {
             eprintln!("Erro ao iniciar o sistema: {}", e);

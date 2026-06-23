@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 import { useEffect, useState, useCallback } from "react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, ask } from "@tauri-apps/plugin-dialog";
 import { readFile } from "@tauri-apps/plugin-fs";
+import { exit } from "@tauri-apps/plugin-process";
 import { getDb } from "@core/database";
 import {
   fazerBackup,
@@ -65,7 +66,8 @@ export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: Syste
   const [fazendoBackup, setFazendoBackup] = useState(false);
   const [restaurando, setRestaurando] = useState(false);
   const [backupInfo, setBackupInfo] = useState(getBackupInfo());
-  const [abaAtiva, setAbaAtiva] = useState<"identidade" | "backup" | "partilha" | "usuarios" | "auditoria">("identidade");
+  const [abaAtiva, setAbaAtiva] = useState<"identidade" | "backup" | "partilha" | "usuarios" | "auditoria" | "sistema">("identidade");
+  const [desinstalando, setDesinstalando] = useState(false);
 
   // ── Partilha ───────────────────────────────────────────────────────────────
   const [partilha, setPartilha] = useState<ConfigPartilha>({ comunidade: 30, areaMissionaria: 40, arquidiocese: 29, fundoMissionario: 1 });
@@ -214,6 +216,7 @@ export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: Syste
       { id: "usuarios",  label: "👥 Usuários" },
       { id: "auditoria", label: "🔍 Auditoria" },
     ] : []),
+    { id: "sistema", label: "⚙️ Sistema" },
   ] as { id: typeof abaAtiva; label: string }[];
 
   return (
@@ -576,6 +579,72 @@ export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: Syste
           </div>
         </section>
       )}
+
+      {/* ── ABA SISTEMA ── */}
+      {abaAtiva === "sistema" && (
+        <section style={{ background: "white", borderRadius: 18, border: "1px solid #e4e7ec", padding: "28px 32px" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: "#1a1d2e", marginBottom: 6 }}>Informações do Sistema</h2>
+          <p style={{ color: "#667085", fontSize: 13, marginBottom: 24 }}>Versão, manutenção e desinstalação do aplicativo.</p>
+
+          {/* Versão */}
+          <div style={{ padding: "16px 20px", background: "#f8fafc", borderRadius: 12, border: "1px solid #e4e7ec", marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#344054" }}>Sistema de Gestão Paroquial</div>
+                <div style={{ fontSize: 12, color: "#98a2b3", marginTop: 2 }}>Versão {__APP_VERSION__}</div>
+              </div>
+              <div style={{ fontSize: 11, color: "#98a2b3" }}>
+                {navigator.platform.includes("Mac") ? "macOS" : navigator.platform.includes("Win") ? "Windows" : "Linux"}
+              </div>
+            </div>
+          </div>
+
+          {/* Desinstalar */}
+          <div style={{ padding: "20px", background: "#fef2f2", borderRadius: 12, border: "1px solid #fecaca" }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: "#991b1b", marginBottom: 6 }}>Desinstalar Sistema</h3>
+            <p style={{ fontSize: 12, color: "#dc2626", lineHeight: 1.6, marginBottom: 16 }}>
+              Esta ação remove completamente o aplicativo e todos os dados locais (banco de dados, configurações, cache).
+              <strong> Faça um backup antes de prosseguir.</strong> Esta ação não pode ser desfeita.
+            </p>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                disabled={desinstalando}
+                onClick={async () => {
+                  const confirma1 = await ask(
+                    "Tem certeza que deseja DESINSTALAR o Sistema de Gestão Paroquial?\n\nTodos os dados serão removidos permanentemente.",
+                    { title: "Desinstalar Sistema", kind: "warning" }
+                  );
+                  if (!confirma1) return;
+                  const confirma2 = await ask(
+                    "ÚLTIMA CONFIRMAÇÃO:\n\nVocê fez backup dos seus dados?\nEsta ação é IRREVERSÍVEL.",
+                    { title: "Confirmar Desinstalação", kind: "warning" }
+                  );
+                  if (!confirma2) return;
+                  setDesinstalando(true);
+                  try {
+                    const { invoke } = await import("@tauri-apps/api/core");
+                    await invoke("desinstalar_sistema");
+                    await exit(0);
+                  } catch (e) {
+                    console.error("Erro ao desinstalar:", e);
+                    setAlerta({ tipo: "erro", msg: "Erro ao desinstalar: " + String(e) });
+                    setDesinstalando(false);
+                  }
+                }}
+                style={{
+                  padding: "10px 24px", borderRadius: 10, border: "none", cursor: desinstalando ? "wait" : "pointer",
+                  background: "#dc2626", color: "white", fontWeight: 700, fontSize: 13,
+                  opacity: desinstalando ? 0.6 : 1, fontFamily: "inherit", transition: "all .15s",
+                }}
+              >
+                {desinstalando ? "Desinstalando..." : "Desinstalar Aplicativo"}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
+
+declare const __APP_VERSION__: string;
