@@ -120,7 +120,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(
             tauri_plugin_sql::Builder::default()
-                .add_migrations("sqlite:paroquia.db", migrations)
+                .add_migrations("sqlite:pastoral.db", migrations)
                 .build(),
         )
         .setup(|app| {

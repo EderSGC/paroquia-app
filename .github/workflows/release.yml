@@ -72,11 +72,39 @@ jobs:
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
 
+      - name: Collect signatures
+        shell: bash
+        run: |
+          mkdir -p sigs
+          find src-tauri/target -name "*.sig" -type f 2>/dev/null | while read f; do
+            basename=$(basename "$f")
+            cp "$f" "sigs/$basename"
+            echo "Found signature: $basename"
+          done
+          ls -la sigs/ || echo "No signatures found"
+
+      - name: Upload signatures artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sigs-${{ matrix.platform }}-${{ matrix.rust_target || 'default' }}
+          path: sigs/
+          if-no-files-found: ignore
+
   updater-json:
     needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download all signature artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: sigs-*
+          path: all-sigs/
+          merge-multiple: true
+
+      - name: List collected signatures
+        run: ls -laR all-sigs/ 2>/dev/null || echo "No sigs dir"
 
       - name: Extract version from tag
         id: version
@@ -91,11 +119,8 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           BASE="https://github.com/${REPO}/releases/download/${TAG}"
 
-          # Download .sig files from the release
-          gh release download "${TAG}" --repo "${REPO}" --pattern "*.sig" --dir sigs/ || true
-
           get_sig() {
-            local file="sigs/$1.sig"
+            local file="all-sigs/$1.sig"
             if [ -f "$file" ]; then
               cat "$file"
             else
@@ -103,18 +128,30 @@ jobs:
             fi
           }
 
-          DARWIN_AARCH64_SIG=$(get_sig "sistema-de-gestao-paroquial_aarch64.app.tar.gz")
-          DARWIN_X64_SIG=$(get_sig "sistema-de-gestao-paroquial_x64.app.tar.gz")
-          LINUX_SIG=$(get_sig "sistema-de-gestao-paroquial_${VERSION}_amd64.AppImage.tar.gz")
-          WINDOWS_SIG=$(get_sig "sistema-de-gestao-paroquial_${VERSION}_x64-setup.nsis.zip")
+          # macOS signatures — the .app.tar.gz gets signed
+          DARWIN_AARCH64_SIG=$(get_sig "sistema-de-gestao-paroquial.app.tar.gz")
+          DARWIN_X64_SIG=$(get_sig "sistema-de-gestao-paroquial.app.tar.gz")
 
-          # If NSIS sig not found, try exe sig
+          # If both mac builds produce the same filename, try platform-specific names
+          if [ -f "all-sigs/sistema-de-gestao-paroquial_aarch64.app.tar.gz.sig" ]; then
+            DARWIN_AARCH64_SIG=$(cat "all-sigs/sistema-de-gestao-paroquial_aarch64.app.tar.gz.sig")
+          fi
+          if [ -f "all-sigs/sistema-de-gestao-paroquial_x64.app.tar.gz.sig" ]; then
+            DARWIN_X64_SIG=$(cat "all-sigs/sistema-de-gestao-paroquial_x64.app.tar.gz.sig")
+          fi
+
+          # Linux — AppImage gets signed
+          LINUX_SIG=$(get_sig "sistema-de-gestao-paroquial_${VERSION}_amd64.AppImage.tar.gz")
+
+          # Windows — NSIS exe gets signed
+          WINDOWS_SIG=$(get_sig "sistema-de-gestao-paroquial_${VERSION}_x64-setup.nsis.zip")
           if [ -z "$WINDOWS_SIG" ]; then
             WINDOWS_SIG=$(get_sig "sistema-de-gestao-paroquial_${VERSION}_x64-setup.exe")
           fi
 
           DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+          # Build JSON
           cat > latest.json << ENDJSON
           {
             "version": "${VERSION}",
@@ -143,6 +180,12 @@ jobs:
 
           echo "Generated latest.json:"
           cat latest.json
+
+          # Validate signatures are not empty
+          EMPTY_COUNT=$(grep -c '"signature": ""' latest.json || true)
+          if [ "$EMPTY_COUNT" -gt 0 ]; then
+            echo "::warning::${EMPTY_COUNT} platform(s) have empty signatures. Auto-update may not work for those platforms."
+          fi
 
       - name: Upload latest.json to release
         env:
