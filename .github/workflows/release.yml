@@ -76,12 +76,18 @@ jobs:
         shell: bash
         run: |
           mkdir -p sigs
-          for f in $(find src-tauri/target -name "*.sig" -type f 2>/dev/null); do
+          find src-tauri/target -name "*.sig" -type f 2>/dev/null > /tmp/sig-list.txt || true
+          count=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
             bn=$(basename "$f")
-            cp "$f" "sigs/$bn"
-            echo "Found signature: $bn ($(cat "$f" | head -c 40)...)"
-          done
-          echo "Total .sig files: $(ls sigs/*.sig 2>/dev/null | wc -l)"
+            cp "$f" "sigs/$bn" 2>/dev/null || cp "${f//\//\\}" "sigs/$bn" 2>/dev/null || true
+            if [ -f "sigs/$bn" ]; then
+              echo "Collected: $bn"
+              count=$((count+1))
+            fi
+          done < /tmp/sig-list.txt
+          echo "Total .sig files collected: $count"
           ls -la sigs/ 2>/dev/null || echo "No signatures found"
 
       - name: Upload signatures artifact
@@ -120,39 +126,31 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           BASE="https://github.com/${REPO}/releases/download/${TAG}"
 
+          echo "=== All collected signatures ==="
+          find all-sigs/ -type f 2>/dev/null || echo "No sigs directory"
+
           get_sig() {
-            local file="all-sigs/$1.sig"
-            if [ -f "$file" ]; then
-              cat "$file"
-            else
-              echo ""
-            fi
+            for name in "$@"; do
+              local file="all-sigs/${name}.sig"
+              if [ -f "$file" ]; then
+                cat "$file"
+                return
+              fi
+            done
+            echo ""
           }
 
-          # macOS signatures — the .app.tar.gz gets signed
           DARWIN_AARCH64_SIG=$(get_sig "sistema-de-gestao-paroquial.app.tar.gz")
           DARWIN_X64_SIG=$(get_sig "sistema-de-gestao-paroquial.app.tar.gz")
-
-          # If both mac builds produce the same filename, try platform-specific names
-          if [ -f "all-sigs/sistema-de-gestao-paroquial_aarch64.app.tar.gz.sig" ]; then
-            DARWIN_AARCH64_SIG=$(cat "all-sigs/sistema-de-gestao-paroquial_aarch64.app.tar.gz.sig")
-          fi
-          if [ -f "all-sigs/sistema-de-gestao-paroquial_x64.app.tar.gz.sig" ]; then
-            DARWIN_X64_SIG=$(cat "all-sigs/sistema-de-gestao-paroquial_x64.app.tar.gz.sig")
-          fi
-
-          # Linux — AppImage gets signed
           LINUX_SIG=$(get_sig "sistema-de-gestao-paroquial_${VERSION}_amd64.AppImage.tar.gz")
-
-          # Windows — NSIS exe gets signed
-          WINDOWS_SIG=$(get_sig "sistema-de-gestao-paroquial_${VERSION}_x64-setup.nsis.zip")
-          if [ -z "$WINDOWS_SIG" ]; then
-            WINDOWS_SIG=$(get_sig "sistema-de-gestao-paroquial_${VERSION}_x64-setup.exe")
-          fi
+          WINDOWS_SIG=$(get_sig \
+            "sistema-de-gestao-paroquial_${VERSION}_x64-setup.nsis.zip" \
+            "sistema-de-gestao-paroquial_${VERSION}_x64-setup.exe" \
+            "sistema-de-gestao-paroquial_${VERSION}_x64_pt-BR.msi.zip" \
+            "sistema-de-gestao-paroquial_${VERSION}_x64_pt-BR.msi")
 
           DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-          # Build JSON
           cat > latest.json << ENDJSON
           {
             "version": "${VERSION}",
@@ -173,7 +171,7 @@ jobs:
               },
               "windows-x86_64": {
                 "signature": "${WINDOWS_SIG}",
-                "url": "${BASE}/sistema-de-gestao-paroquial_${VERSION}_x64-setup.nsis.zip"
+                "url": "${BASE}/sistema-de-gestao-paroquial_${VERSION}_x64-setup.exe"
               }
             }
           }
@@ -182,10 +180,9 @@ jobs:
           echo "Generated latest.json:"
           cat latest.json
 
-          # Validate signatures are not empty
           EMPTY_COUNT=$(grep -c '"signature": ""' latest.json || true)
           if [ "$EMPTY_COUNT" -gt 0 ]; then
-            echo "::warning::${EMPTY_COUNT} platform(s) have empty signatures. Auto-update may not work for those platforms."
+            echo "::warning::${EMPTY_COUNT} platform(s) have empty signatures"
           fi
 
       - name: Upload latest.json to release
