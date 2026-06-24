@@ -128,7 +128,9 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
     minHeight: "100vh", background: "linear-gradient(180deg, #f0f4ff, #e8edf8)",
     fontFamily: "-apple-system, 'SF Pro Display', BlinkMacSystemFont, 'Helvetica Neue', sans-serif",
-    padding: 20,
+    padding: "40px 20px 20px",
+    overflowY: "auto",
+    boxSizing: "border-box",
   };
 
   const cardStyle: CSSProperties = {

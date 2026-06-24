@@ -244,6 +244,8 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
             overflowX: "hidden",
             position: "relative",
             zIndex: 1,
+            margin: "8px 6px 0 6px",
+            borderRadius: "14px 14px 0 0",
             background: activeModule === "dashboard"
               ? "transparent"
               : isDark
@@ -251,8 +253,8 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
               : "linear-gradient(180deg, rgba(248,250,252,0.96), rgba(242,246,251,0.96))",
             backdropFilter: activeModule === "dashboard" ? undefined : "blur(10px)",
             WebkitBackdropFilter: activeModule === "dashboard" ? undefined : "blur(10px)",
-            borderLeft: activeModule === "dashboard" ? undefined : "1px solid rgba(255,255,255,0.6)",
-            borderRight: activeModule === "dashboard" ? undefined : "1px solid rgba(255,255,255,0.6)",
+            boxShadow: "0 1px 8px rgba(0,0,0,0.08)",
+            overflow: "hidden",
           }}
         >
           {renderWorkspace()}
