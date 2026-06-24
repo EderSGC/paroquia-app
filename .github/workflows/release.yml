@@ -72,50 +72,49 @@ jobs:
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
 
-      - name: Collect signatures
-        shell: bash
-        run: |
-          mkdir -p sigs
-          find src-tauri/target -name "*.sig" -type f 2>/dev/null > /tmp/sig-list.txt || true
-          count=0
-          while IFS= read -r f; do
-            [ -z "$f" ] && continue
-            bn=$(basename "$f")
-            cp "$f" "sigs/$bn" 2>/dev/null || cp "${f//\//\\}" "sigs/$bn" 2>/dev/null || true
-            if [ -f "sigs/$bn" ]; then
-              echo "Collected: $bn"
-              count=$((count+1))
-            fi
-          done < /tmp/sig-list.txt
-          echo "Total .sig files collected: $count"
-          ls -la sigs/ 2>/dev/null || echo "No signatures found"
-
-      - name: Upload signatures artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sigs-${{ matrix.platform }}-${{ matrix.rust_target || 'default' }}
-          path: sigs/
-          if-no-files-found: ignore
-
   updater-json:
     needs: build
+    if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Download all signature artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: sigs-*
-          path: all-sigs/
-          merge-multiple: true
-
-      - name: List collected signatures
-        run: ls -laR all-sigs/ 2>/dev/null || echo "No sigs dir"
-
       - name: Extract version from tag
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Wait for release assets to be available
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Waiting for release assets..."
+          for i in $(seq 1 12); do
+            COUNT=$(gh release view "${GITHUB_REF_NAME}" --repo "${{ github.repository }}" --json assets --jq '.assets | length' 2>/dev/null || echo "0")
+            echo "Attempt $i: $COUNT assets found"
+            if [ "$COUNT" -ge 4 ]; then break; fi
+            sleep 10
+          done
+
+      - name: Download signatures from release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p sigs
+          REPO="${{ github.repository }}"
+          TAG="${GITHUB_REF_NAME}"
+
+          echo "=== Downloading .sig files from release ${TAG} ==="
+          ASSETS=$(gh release view "${TAG}" --repo "${REPO}" --json assets --jq '.assets[].name' 2>/dev/null || echo "")
+          echo "All assets: ${ASSETS}"
+
+          for asset in ${ASSETS}; do
+            if [[ "$asset" == *.sig ]]; then
+              echo "Downloading: $asset"
+              gh release download "${TAG}" --repo "${REPO}" --pattern "$asset" --dir sigs/ || true
+            fi
+          done
+
+          echo "=== Downloaded signatures ==="
+          ls -la sigs/ 2>/dev/null || echo "No signatures downloaded"
 
       - name: Generate latest.json
         env:
@@ -126,12 +125,9 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           BASE="https://github.com/${REPO}/releases/download/${TAG}"
 
-          echo "=== All collected signatures ==="
-          find all-sigs/ -type f 2>/dev/null || echo "No sigs directory"
-
           get_sig() {
             for name in "$@"; do
-              local file="all-sigs/${name}.sig"
+              local file="sigs/${name}.sig"
               if [ -f "$file" ]; then
                 cat "$file"
                 return
