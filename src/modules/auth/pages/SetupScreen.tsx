@@ -104,6 +104,7 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
       const { getDb } = await import("@core/database");
       const db = await getDb();
       await db.execute("UPDATE usuarios SET papel=? WHERE login=?", [papel, login.login.trim()]);
+      await db.execute("PRAGMA wal_checkpoint(TRUNCATE)");
 
       onDone();
     } catch (error) {

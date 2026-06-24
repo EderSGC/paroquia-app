@@ -231,6 +231,7 @@ export async function finalizarSetup(arg1: SetupInput, arg2?: SetupInput): Promi
         );
       }
     }
+    await db.execute("PRAGMA wal_checkpoint(TRUNCATE)");
   } catch (error) {
     console.error("Erro no setup:", error);
     throw error;

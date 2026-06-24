@@ -53,7 +53,7 @@ async function initDb(): Promise<Database> {
 
     await connection.dbInstance.execute("PRAGMA foreign_keys = ON");
     await connection.dbInstance.execute("PRAGMA journal_mode = WAL");
-    await connection.dbInstance.execute("PRAGMA synchronous = NORMAL");
+    await connection.dbInstance.execute("PRAGMA synchronous = FULL");
     await connection.dbInstance.execute("PRAGMA cache_size = -8000");
 
     await validateAndSyncSchema(connection.dbInstance);
@@ -63,9 +63,14 @@ async function initDb(): Promise<Database> {
     await createUpdatedAtTriggers(connection.dbInstance);
     await createForeignKeys(connection.dbInstance);
 
+    const db = connection.dbInstance;
+    window.addEventListener("beforeunload", () => {
+      db.execute("PRAGMA wal_checkpoint(TRUNCATE)").catch(() => {});
+    });
+
     logger.log("✅ Banco sincronizado com sucesso.");
 
-    return connection.dbInstance;
+    return db;
   } catch (error) {
     connection.dbInstance = null;
     connection.connectionError = String(error);
