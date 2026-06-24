@@ -72,11 +72,22 @@ jobs:
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
 
+      - name: Collect signature files
+        shell: bash
+        run: |
+          mkdir -p collected-sigs
+          find src-tauri/target -name "*.sig" -type f 2>/dev/null | while read f; do
+            bn=$(basename "$f")
+            cp "$f" "collected-sigs/$bn"
+            echo "Collected: $bn ($(cat "collected-sigs/$bn" | head -c 30)...)"
+          done
+          echo "Total: $(ls collected-sigs/*.sig 2>/dev/null | wc -l) signature(s)"
+
       - name: Upload signature files
         uses: actions/upload-artifact@v4
         with:
           name: sigs-${{ matrix.platform }}-${{ matrix.rust_target || 'default' }}
-          path: src-tauri/target/**/bundle/**/*.sig
+          path: collected-sigs/
           if-no-files-found: warn
 
   updater-json:
