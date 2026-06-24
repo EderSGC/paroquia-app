@@ -76,12 +76,16 @@ jobs:
         shell: bash
         run: |
           mkdir -p collected-sigs
-          find src-tauri/target -name "*.sig" -type f 2>/dev/null | while read f; do
+          echo "PWD: $(pwd)"
+          echo "Looking for .sig files..."
+          find . -name "*.sig" -type f 2>/dev/null || true
+          find . -name "*.sig" -type f 2>/dev/null | while read f; do
             bn=$(basename "$f")
             cp "$f" "collected-sigs/$bn"
-            echo "Collected: $bn ($(cat "collected-sigs/$bn" | head -c 30)...)"
+            echo "Collected: $bn"
           done
-          echo "Total: $(ls collected-sigs/*.sig 2>/dev/null | wc -l) signature(s)"
+          echo "Total: $(ls collected-sigs/ 2>/dev/null | wc -l) signature(s)"
+          ls -la collected-sigs/ 2>/dev/null || true
 
       - name: Upload signature files
         uses: actions/upload-artifact@v4
