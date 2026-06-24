@@ -40,7 +40,7 @@ export function UpdateChecker() {
       await relaunch();
     } catch (e) {
       console.error('Erro ao atualizar:', e);
-      setProgress('Erro na atualização. Tente novamente.');
+      setProgress('Erro na atualização. Baixe manualmente em github.com/EderSGC/paroquia-app/releases');
       setInstalling(false);
     }
   }
