@@ -73,14 +73,6 @@ jobs:
           includeUpdaterJson: false
           args: ${{ matrix.args }}
 
-      - name: Upload signature artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: sigs-${{ matrix.platform }}-${{ matrix.rust_target || 'default' }}
-          path: |
-            src-tauri/target/**/release/bundle/**/*.sig
-          if-no-files-found: warn
-
   updater-json:
     needs: build
     runs-on: ubuntu-latest
@@ -89,15 +81,75 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
-      - name: Download all signature artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: sigs
-          pattern: sigs-*
-          merge-multiple: true
+      - name: Install Rust and tauri-cli
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source "$HOME/.cargo/env"
+          cargo install tauri-cli --version "^2" --locked
 
-      - name: List all signatures
-        run: find sigs -name "*.sig" -type f 2>/dev/null || echo "No signatures found"
+      - name: Write signing key to file
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          echo "$TAURI_SIGNING_PRIVATE_KEY" > /tmp/tauri-signing.key
+          echo "Key file size: $(wc -c < /tmp/tauri-signing.key) bytes"
+
+      - name: Download and sign updater assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          source "$HOME/.cargo/env"
+          REPO="${{ github.repository }}"
+          TAG="${GITHUB_REF_NAME}"
+          mkdir -p updater-files
+
+          sign_asset() {
+            local asset_name="$1"
+            echo "=== Signing: $asset_name ==="
+
+            if ! gh release download "${TAG}" --repo "${REPO}" --pattern "$asset_name" --dir updater-files/; then
+              echo "  SKIP: Asset not found in release"
+              return 1
+            fi
+
+            echo "  Downloaded: $(ls -la "updater-files/$asset_name")"
+
+            if [ -n "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
+              cargo tauri signer sign "updater-files/$asset_name" \
+                --private-key-path /tmp/tauri-signing.key \
+                --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+            else
+              cargo tauri signer sign "updater-files/$asset_name" \
+                --private-key-path /tmp/tauri-signing.key
+            fi
+
+            if [ -f "updater-files/${asset_name}.sig" ]; then
+              echo "  SUCCESS: $(cat "updater-files/${asset_name}.sig" | head -c 60)..."
+              return 0
+            else
+              echo "  FAILED: No .sig file generated"
+              return 1
+            fi
+          }
+
+          # macOS
+          sign_asset "sistema-de-gestao-paroquial_aarch64.app.tar.gz"
+          sign_asset "sistema-de-gestao-paroquial_x64.app.tar.gz"
+
+          # Linux
+          sign_asset "sistema-de-gestao-paroquial_${VERSION}_amd64.AppImage.tar.gz" || \
+            sign_asset "sistema-de-gestao-paroquial_${VERSION}_amd64.AppImage"
+
+          # Windows (try nsis zip first, then exe, then msi)
+          sign_asset "sistema-de-gestao-paroquial_${VERSION}_x64-setup.nsis.zip" || \
+            sign_asset "sistema-de-gestao-paroquial_${VERSION}_x64-setup.exe" || \
+            sign_asset "sistema-de-gestao-paroquial_${VERSION}_x64_pt-BR.msi"
+
+          echo ""
+          echo "=== All .sig files ==="
+          find updater-files -name "*.sig" -exec echo "  {}" \; -exec cat {} \; -exec echo "" \;
 
       - name: Generate latest.json
         env:
@@ -108,32 +160,34 @@ jobs:
           BASE="https://github.com/${REPO}/releases/download/${TAG}"
 
           get_sig() {
-            for pattern in "$@"; do
-              local file=$(find sigs -name "${pattern}.sig" -type f 2>/dev/null | head -1)
-              if [ -n "$file" ] && [ -f "$file" ]; then
-                cat "$file"
+            for name in "$@"; do
+              if [ -f "updater-files/${name}.sig" ]; then
+                cat "updater-files/${name}.sig"
                 return
               fi
             done
             echo ""
           }
 
-          DARWIN_AARCH64_SIG=$(get_sig "sistema-de-gestao-paroquial.app.tar.gz")
-          # aarch64 and x64 have same tar.gz name — disambiguate by path
-          DARWIN_AARCH64_SIG=$(find sigs -path "*aarch64*" -name "*.app.tar.gz.sig" -type f 2>/dev/null | head -1 | xargs cat 2>/dev/null || echo "")
-          DARWIN_X64_SIG=$(find sigs -path "*x86_64*" -name "*.app.tar.gz.sig" -type f 2>/dev/null | head -1 | xargs cat 2>/dev/null || echo "")
-          LINUX_SIG=$(get_sig "sistema-de-gestao-paroquial_${VERSION}_amd64.AppImage.tar.gz")
-          WINDOWS_SIG=$(get_sig \
+          DARWIN_AARCH64_SIG=$(get_sig "sistema-de-gestao-paroquial_aarch64.app.tar.gz")
+          DARWIN_X64_SIG=$(get_sig "sistema-de-gestao-paroquial_x64.app.tar.gz")
+          LINUX_SIG=$(get_sig \
+            "sistema-de-gestao-paroquial_${VERSION}_amd64.AppImage.tar.gz" \
+            "sistema-de-gestao-paroquial_${VERSION}_amd64.AppImage")
+
+          # Windows: determine which asset was signed
+          WIN_ASSET=""
+          WINDOWS_SIG=""
+          for name in \
             "sistema-de-gestao-paroquial_${VERSION}_x64-setup.nsis.zip" \
             "sistema-de-gestao-paroquial_${VERSION}_x64-setup.exe" \
-            "sistema-de-gestao-paroquial_${VERSION}_x64_pt-BR.msi.zip" \
-            "sistema-de-gestao-paroquial_${VERSION}_x64_pt-BR.msi")
-
-          # Determine Windows URL based on which sig we found
-          WIN_URL="${BASE}/sistema-de-gestao-paroquial_${VERSION}_x64-setup.nsis.zip"
-          if [ -z "$WINDOWS_SIG" ]; then
-            WIN_URL="${BASE}/sistema-de-gestao-paroquial_${VERSION}_x64-setup.exe"
-          fi
+            "sistema-de-gestao-paroquial_${VERSION}_x64_pt-BR.msi"; do
+            if [ -f "updater-files/${name}.sig" ]; then
+              WINDOWS_SIG=$(cat "updater-files/${name}.sig")
+              WIN_ASSET="${name}"
+              break
+            fi
+          done
 
           echo "=== Signatures ==="
           echo "  darwin-aarch64: ${DARWIN_AARCH64_SIG:0:40}..."
@@ -152,36 +206,37 @@ jobs:
             exit 1
           fi
           if [ "$EMPTY_COUNT" -gt 0 ]; then
-            echo "::warning::${EMPTY_COUNT} platform(s) have empty signatures"
+            echo "::warning::${EMPTY_COUNT} platform(s) have empty signatures — updater won't work for those"
           fi
 
           DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          WIN_URL="${BASE}/${WIN_ASSET:-sistema-de-gestao-paroquial_${VERSION}_x64-setup.exe}"
 
           cat > latest.json << ENDJSON
-          {
-            "version": "${VERSION}",
-            "notes": "Sistema de Gestão Paroquial v${VERSION}",
-            "pub_date": "${DATE}",
-            "platforms": {
-              "darwin-aarch64": {
-                "signature": "${DARWIN_AARCH64_SIG}",
-                "url": "${BASE}/sistema-de-gestao-paroquial_aarch64.app.tar.gz"
-              },
-              "darwin-x86_64": {
-                "signature": "${DARWIN_X64_SIG}",
-                "url": "${BASE}/sistema-de-gestao-paroquial_x64.app.tar.gz"
-              },
-              "linux-x86_64": {
-                "signature": "${LINUX_SIG}",
-                "url": "${BASE}/sistema-de-gestao-paroquial_${VERSION}_amd64.AppImage.tar.gz"
-              },
-              "windows-x86_64": {
-                "signature": "${WINDOWS_SIG}",
-                "url": "${WIN_URL}"
-              }
-            }
-          }
-          ENDJSON
+{
+  "version": "${VERSION}",
+  "notes": "Sistema de Gestão Paroquial v${VERSION}",
+  "pub_date": "${DATE}",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "${DARWIN_AARCH64_SIG}",
+      "url": "${BASE}/sistema-de-gestao-paroquial_aarch64.app.tar.gz"
+    },
+    "darwin-x86_64": {
+      "signature": "${DARWIN_X64_SIG}",
+      "url": "${BASE}/sistema-de-gestao-paroquial_x64.app.tar.gz"
+    },
+    "linux-x86_64": {
+      "signature": "${LINUX_SIG}",
+      "url": "${BASE}/sistema-de-gestao-paroquial_${VERSION}_amd64.AppImage.tar.gz"
+    },
+    "windows-x86_64": {
+      "signature": "${WINDOWS_SIG}",
+      "url": "${WIN_URL}"
+    }
+  }
+}
+ENDJSON
 
           echo ""
           echo "=== Generated latest.json ==="
@@ -192,3 +247,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${GITHUB_REF_NAME}" latest.json --repo "${{ github.repository }}" --clobber
+
+      - name: Cleanup signing key
+        if: always()
+        run: rm -f /tmp/tauri-signing.key
