@@ -116,14 +116,9 @@ jobs:
 
             echo "  Downloaded: $(ls -la "updater-files/$asset_name")"
 
-            if [ -n "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
-              cargo tauri signer sign "updater-files/$asset_name" \
-                --private-key-path /tmp/tauri-signing.key \
-                --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
-            else
-              cargo tauri signer sign "updater-files/$asset_name" \
-                --private-key-path /tmp/tauri-signing.key
-            fi
+            cargo tauri signer sign "updater-files/$asset_name" \
+              --private-key-path /tmp/tauri-signing.key \
+              --password "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}"
 
             if [ -f "updater-files/${asset_name}.sig" ]; then
               echo "  SUCCESS: $(cat "updater-files/${asset_name}.sig" | head -c 60)..."
