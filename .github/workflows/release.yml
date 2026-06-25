@@ -207,31 +207,12 @@ jobs:
           DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           WIN_URL="${BASE}/${WIN_ASSET:-sistema-de-gestao-paroquial_${VERSION}_x64-setup.exe}"
 
-          cat > latest.json << ENDJSON
-{
-  "version": "${VERSION}",
-  "notes": "Sistema de Gestão Paroquial v${VERSION}",
-  "pub_date": "${DATE}",
-  "platforms": {
-    "darwin-aarch64": {
-      "signature": "${DARWIN_AARCH64_SIG}",
-      "url": "${BASE}/sistema-de-gestao-paroquial_aarch64.app.tar.gz"
-    },
-    "darwin-x86_64": {
-      "signature": "${DARWIN_X64_SIG}",
-      "url": "${BASE}/sistema-de-gestao-paroquial_x64.app.tar.gz"
-    },
-    "linux-x86_64": {
-      "signature": "${LINUX_SIG}",
-      "url": "${BASE}/sistema-de-gestao-paroquial_${VERSION}_amd64.AppImage.tar.gz"
-    },
-    "windows-x86_64": {
-      "signature": "${WINDOWS_SIG}",
-      "url": "${WIN_URL}"
-    }
-  }
-}
-ENDJSON
+          printf '{\n  "version": "%s",\n  "notes": "Sistema de Gestão Paroquial v%s",\n  "pub_date": "%s",\n  "platforms": {\n    "darwin-aarch64": {\n      "signature": "%s",\n      "url": "%s/sistema-de-gestao-paroquial_aarch64.app.tar.gz"\n    },\n    "darwin-x86_64": {\n      "signature": "%s",\n      "url": "%s/sistema-de-gestao-paroquial_x64.app.tar.gz"\n    },\n    "linux-x86_64": {\n      "signature": "%s",\n      "url": "%s/sistema-de-gestao-paroquial_%s_amd64.AppImage.tar.gz"\n    },\n    "windows-x86_64": {\n      "signature": "%s",\n      "url": "%s"\n    }\n  }\n}\n' \
+            "$VERSION" "$VERSION" "$DATE" \
+            "$DARWIN_AARCH64_SIG" "$BASE" \
+            "$DARWIN_X64_SIG" "$BASE" \
+            "$LINUX_SIG" "$BASE" "$VERSION" \
+            "$WINDOWS_SIG" "$WIN_URL" > latest.json
 
           echo ""
           echo "=== Generated latest.json ==="
