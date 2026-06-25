@@ -126,6 +126,138 @@
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Paletas de cores — sobrescrevem --accent e backgrounds derivados
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* Verde Esmeralda */
+[data-palette="verde"] {
+  --accent: #059669;
+  --bg-sidebar: rgba(240, 253, 244, 0.90);
+  --bg-panel: rgba(236, 253, 245, 0.86);
+  --bg-header: rgba(240, 253, 244, 0.50);
+  --bg-hover: rgba(5, 150, 105, 0.07);
+  --separator: rgba(5, 150, 105, 0.13);
+  --border-card: rgba(5, 150, 105, 0.08);
+}
+[data-palette="verde"][data-theme="dark"],
+@media (prefers-color-scheme: dark) { :root[data-palette="verde"]:not([data-theme="light"]) {
+  --accent: #34d399;
+  --bg-sidebar: rgba(6, 40, 28, 0.82);
+  --bg-panel: rgba(4, 32, 22, 0.88);
+  --bg-hover: rgba(52, 211, 153, 0.10);
+  --separator: rgba(52, 211, 153, 0.14);
+  --border-card: rgba(52, 211, 153, 0.09);
+}}
+
+/* Roxo Litúrgico */
+[data-palette="roxo"] {
+  --accent: #7c3aed;
+  --bg-sidebar: rgba(245, 243, 255, 0.90);
+  --bg-panel: rgba(243, 240, 255, 0.86);
+  --bg-header: rgba(245, 243, 255, 0.50);
+  --bg-hover: rgba(124, 58, 237, 0.07);
+  --separator: rgba(124, 58, 237, 0.13);
+  --border-card: rgba(124, 58, 237, 0.08);
+}
+[data-palette="roxo"][data-theme="dark"],
+@media (prefers-color-scheme: dark) { :root[data-palette="roxo"]:not([data-theme="light"]) {
+  --accent: #a78bfa;
+  --bg-sidebar: rgba(22, 10, 50, 0.82);
+  --bg-panel: rgba(18, 8, 42, 0.88);
+  --bg-hover: rgba(167, 139, 250, 0.10);
+  --separator: rgba(167, 139, 250, 0.14);
+  --border-card: rgba(167, 139, 250, 0.09);
+}}
+
+/* Bordô / Vinho */
+[data-palette="bordo"] {
+  --accent: #9f1239;
+  --bg-sidebar: rgba(255, 241, 242, 0.90);
+  --bg-panel: rgba(255, 236, 238, 0.86);
+  --bg-header: rgba(255, 241, 242, 0.50);
+  --bg-hover: rgba(159, 18, 57, 0.07);
+  --separator: rgba(159, 18, 57, 0.13);
+  --border-card: rgba(159, 18, 57, 0.08);
+}
+[data-palette="bordo"][data-theme="dark"],
+@media (prefers-color-scheme: dark) { :root[data-palette="bordo"]:not([data-theme="light"]) {
+  --accent: #fb7185;
+  --bg-sidebar: rgba(50, 10, 18, 0.82);
+  --bg-panel: rgba(42, 8, 14, 0.88);
+  --bg-hover: rgba(251, 113, 133, 0.10);
+  --separator: rgba(251, 113, 133, 0.14);
+  --border-card: rgba(251, 113, 133, 0.09);
+}}
+
+/* Dourado */
+[data-palette="dourado"] {
+  --accent: #b45309;
+  --bg-sidebar: rgba(255, 251, 235, 0.90);
+  --bg-panel: rgba(254, 249, 228, 0.86);
+  --bg-header: rgba(255, 251, 235, 0.50);
+  --bg-hover: rgba(180, 83, 9, 0.07);
+  --separator: rgba(180, 83, 9, 0.13);
+  --border-card: rgba(180, 83, 9, 0.08);
+}
+[data-palette="dourado"][data-theme="dark"],
+@media (prefers-color-scheme: dark) { :root[data-palette="dourado"]:not([data-theme="light"]) {
+  --accent: #fbbf24;
+  --bg-sidebar: rgba(42, 30, 6, 0.82);
+  --bg-panel: rgba(36, 24, 4, 0.88);
+  --bg-hover: rgba(251, 191, 36, 0.10);
+  --separator: rgba(251, 191, 36, 0.14);
+  --border-card: rgba(251, 191, 36, 0.09);
+}}
+
+/* Azul Petróleo */
+[data-palette="petroleo"] {
+  --accent: #0d9488;
+  --bg-sidebar: rgba(240, 253, 250, 0.90);
+  --bg-panel: rgba(236, 254, 248, 0.86);
+  --bg-header: rgba(240, 253, 250, 0.50);
+  --bg-hover: rgba(13, 148, 136, 0.07);
+  --separator: rgba(13, 148, 136, 0.13);
+  --border-card: rgba(13, 148, 136, 0.08);
+}
+[data-palette="petroleo"][data-theme="dark"],
+@media (prefers-color-scheme: dark) { :root[data-palette="petroleo"]:not([data-theme="light"]) {
+  --accent: #2dd4bf;
+  --bg-sidebar: rgba(6, 40, 36, 0.82);
+  --bg-panel: rgba(4, 32, 28, 0.88);
+  --bg-hover: rgba(45, 212, 191, 0.10);
+  --separator: rgba(45, 212, 191, 0.14);
+  --border-card: rgba(45, 212, 191, 0.09);
+}}
+
+/* Cinza Elegante */
+[data-palette="cinza"] {
+  --accent: #475569;
+  --bg-sidebar: rgba(248, 250, 252, 0.90);
+  --bg-panel: rgba(241, 245, 249, 0.86);
+  --bg-header: rgba(248, 250, 252, 0.50);
+  --bg-hover: rgba(71, 85, 105, 0.07);
+  --separator: rgba(71, 85, 105, 0.13);
+  --border-card: rgba(71, 85, 105, 0.08);
+}
+[data-palette="cinza"][data-theme="dark"],
+@media (prefers-color-scheme: dark) { :root[data-palette="cinza"]:not([data-theme="light"]) {
+  --accent: #94a3b8;
+  --bg-sidebar: rgba(15, 23, 42, 0.82);
+  --bg-panel: rgba(10, 18, 36, 0.88);
+  --bg-hover: rgba(148, 163, 184, 0.10);
+  --separator: rgba(148, 163, 184, 0.14);
+  --border-card: rgba(148, 163, 184, 0.09);
+}}
+
+/* Body gradients por paleta */
+[data-palette="verde"] body   { background: linear-gradient(160deg, #ECFDF5 0%, #D1FAE5 35%, #A7F3D0 65%, #6EE7B7 100%) !important; }
+[data-palette="roxo"] body    { background: linear-gradient(160deg, #F5F3FF 0%, #EDE9FE 35%, #DDD6FE 65%, #C4B5FD 100%) !important; }
+[data-palette="bordo"] body   { background: linear-gradient(160deg, #FFF1F2 0%, #FFE4E6 35%, #FECDD3 65%, #FDA4AF 100%) !important; }
+[data-palette="dourado"] body { background: linear-gradient(160deg, #FFFBEB 0%, #FEF3C7 35%, #FDE68A 65%, #FCD34D 100%) !important; }
+[data-palette="petroleo"] body{ background: linear-gradient(160deg, #F0FDFA 0%, #CCFBF1 35%, #99F6E4 65%, #5EEAD4 100%) !important; }
+[data-palette="cinza"] body   { background: linear-gradient(160deg, #F8FAFC 0%, #F1F5F9 35%, #E2E8F0 65%, #CBD5E1 100%) !important; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    Base reset
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 * { box-sizing: border-box; }

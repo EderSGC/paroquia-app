@@ -24,6 +24,7 @@ export interface DadosCrisma {
   valorTaxa: string;
   certidaoBatismo: string;
   certidaoEucaristia: string;
+  documentoRetirado: string;
 }
 
 export interface DadosEucaristia {
@@ -34,6 +35,7 @@ export interface DadosEucaristia {
   dataComunhao: string;
   local: string;
   obs: string;
+  documentoRetirado: string;
   [key: string]: string;
 }
 
@@ -78,6 +80,7 @@ export interface DadosMatrimonio {
   noivaEndBairro: string;
   noivaEndCidade: string;
   noivaFone: string;
+  documentoRetirado: string;
   [key: string]: string;
 }
 
@@ -91,6 +94,7 @@ export interface DadosUncao {
   dataVisita: string;
   visitante: string;
   anotacoes: string;
+  documentoRetirado: string;
 }
 
 export interface DadosObito {
@@ -103,6 +107,7 @@ export interface DadosObito {
   cemiterio: string;
   comunidade: string;
   observacoes: string;
+  documentoRetirado: string;
 }
 
 export interface DadosCertificado {

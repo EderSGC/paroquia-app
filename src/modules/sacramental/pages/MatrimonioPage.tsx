@@ -193,7 +193,7 @@ export function MatrimonioPage({ paroquia }: MatrimonioPageProps) {
     
     // --- OUTRAS INFORMAÇÕES (DISPENSAS E TRANSFERÊNCIA) ---
     autorizacaoPadre: "", transfParoquia: "", dispensasObtidas: "",
-    docBatismo: "Não", docCurso: "Não", docOutros: "",
+    docBatismo: "Não", docCurso: "Não", docOutros: "", documentoRetirado: "Não",
     
     // --- ATA DA CELEBRAÇÃO ---
     ataDia: "", ataMes: "", ataAno: "", ataHora: "", ataLocal: "", ataCelebrante: "",
@@ -393,6 +393,10 @@ renderInput("Nome da Mãe", "noivoMae")}</div>
             <div style={styles.row2}>{renderInput("6. Nome", "test6Nome")} {renderInput("Endereço", "test6End")}</div>
           </div>
         )}
+
+        <div style={styles.row}>
+          <div style={styles.fieldGroup}><label style={styles.label}>Documento Retirado?</label><select style={styles.input} value={dados.documentoRetirado || "Não"} onChange={e => atualizar('documentoRetirado', e.target.value)}><option value="Não">Não</option><option value="Sim">Sim</option></select></div>
+        </div>
 
         <div style={styles.buttonGroup}>
           <button style={styles.btnRegistrar} onClick={handleSalvar}>{editandoId ? "💾 Atualizar" : "Salvar Matrimônio"}</button>

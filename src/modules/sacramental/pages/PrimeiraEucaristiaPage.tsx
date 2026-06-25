@@ -127,12 +127,12 @@ export function PrimeiraEucaristiaPage({ paroquia: paroquiaDados }: Props) {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [fielId, setFielId] = useState<number | null>(null);
   const [dados, setDados] = useState<DadosEucaristia>({
-    nome: "", comunidade: "", turma: "", catequista: "", dataComunhao: "", local: "", obs: ""
+    nome: "", comunidade: "", turma: "", catequista: "", dataComunhao: "", local: "", obs: "", documentoRetirado: "Não"
   });
 
   const atualizar = (campo: string, valor: string) => setDados(p => ({ ...p, [campo]: valor }));
 
-  const novoRegistro = () => { setDados({ nome: "", comunidade: "", turma: "", catequista: "", dataComunhao: "", local: "", obs: "" }); setEditandoId(null); };
+  const novoRegistro = () => { setDados({ nome: "", comunidade: "", turma: "", catequista: "", dataComunhao: "", local: "", obs: "", documentoRetirado: "Não" }); setEditandoId(null); };
 
   const handleRegistrar = async () => {
     if (!dados.nome) { showToast("Preencha o nome do catequizando.", "error"); return; }
@@ -177,7 +177,7 @@ export function PrimeiraEucaristiaPage({ paroquia: paroquiaDados }: Props) {
           busca={busca}
           recarregarKey={recarregarKey}
           onExcluir={() => { setEditandoId(null); novoRegistro(); }}
-          onSelecionar={(d, registro) => { const data = d as Record<string, string>; setEditandoId(registro.id); setDados({ nome: data.nome || "", comunidade: data.comunidade || "", turma: data.turma || "", catequista: data.catequista || "", dataComunhao: data.dataComunhao || "", local: data.local || "", obs: data.obs || "" }); }}
+          onSelecionar={(d, registro) => { const data = d as Record<string, string>; setEditandoId(registro.id); setDados({ nome: data.nome || "", comunidade: data.comunidade || "", turma: data.turma || "", catequista: data.catequista || "", dataComunhao: data.dataComunhao || "", local: data.local || "", obs: data.obs || "", documentoRetirado: data.documentoRetirado || "Não" }); }}
         />
         <BuscarFielPastoral onSelecionar={f => { setDados(d => ({ ...d, nome: f.nome, comunidade: f.comunidade || d.comunidade })); setFielId(f.id); }} label="Buscar Comunicante no Módulo Pastoral" />
 
@@ -202,6 +202,10 @@ export function PrimeiraEucaristiaPage({ paroquia: paroquiaDados }: Props) {
           <div style={styles.fieldGroup}>
             <label style={styles.label}>Observações</label>
             <textarea style={styles.textarea} value={dados.obs} onChange={e => atualizar('obs', e.target.value)} />
+          </div>
+          <div style={styles.fieldGroup}>
+            <label style={styles.label}>Documento Retirado?</label>
+            <select style={styles.input} value={dados.documentoRetirado || "Não"} onChange={e => atualizar('documentoRetirado', e.target.value)}><option value="Não">Não</option><option value="Sim">Sim</option></select>
           </div>
 
           <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>

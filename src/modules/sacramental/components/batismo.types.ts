@@ -16,6 +16,7 @@ export interface DadosBatismo {
   eDizimista: string; contribuiFinanceiramente: string;
   razaoBatismo: string;
   seCompromete?: string;
+  documentoRetirado?: string;
 }
 
 export interface DadosPadrinhos {

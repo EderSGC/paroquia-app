@@ -137,6 +137,7 @@ const DADOS_VAZIO = {
   nome: "", dataNasc: "", dataFalecimento: "", dataExequias: "",
   local: "", ministro: "", cemiterio: "", obs: "",
   comunidade: "", comunidadeManual: "", tipoComunidade: "existente" as "existente" | "manual",
+  documentoRetirado: "Não",
 };
 
 export function ObitosExequiasPage({ paroquia: paroquiaDados }: Props) {
@@ -298,6 +299,7 @@ export function ObitosExequiasPage({ paroquia: paroquiaDados }: Props) {
                                 comunidade: tipoComunidade === "existente" ? (r.comunidade || "") : "",
                                 comunidadeManual: tipoComunidade === "manual" ? (r.comunidade || "") : "",
                                 tipoComunidade,
+                                documentoRetirado: (r as any).documentoRetirado || "Não",
                               });
                             }}
                             style={{ background: "linear-gradient(135deg, #1f3b73, #2563eb)", color: "white", border: "none", borderRadius: "8px", padding: "6px 12px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
@@ -365,6 +367,10 @@ export function ObitosExequiasPage({ paroquia: paroquiaDados }: Props) {
           <div style={styles.fieldGroup}>
             <label style={styles.label}>Observações / Causa (Opcional)</label>
             <textarea style={styles.textarea} value={dados.obs} onChange={e => atualizar('obs', e.target.value)} />
+          </div>
+          <div style={styles.fieldGroup}>
+            <label style={styles.label}>Documento Retirado?</label>
+            <select style={styles.input} value={dados.documentoRetirado || "Não"} onChange={e => atualizar('documentoRetirado', e.target.value)}><option value="Não">Não</option><option value="Sim">Sim</option></select>
           </div>
 
           <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>

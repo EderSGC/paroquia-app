@@ -17,6 +17,8 @@ import { AuditoriaPage } from "../../configuracoes/pages/AuditoriaPage";
 
 import { AppLogo } from "../../../core/ui/AppLogo";
 import { ModalAlert, ModalConfirm } from "../../../core/ui/Modal";
+import { useTheme, PALETTES } from "../../../core/hooks/useTheme";
+import type { Palette } from "../../../core/hooks/useTheme";
 import type { Paroquia, Usuario, PapelUsuario } from "../../../core/types/app.types";
 import { LABEL_PAPEL } from "../../../core/types/app.types";
 import { createDataUrl } from "../../../core/utils/image";
@@ -56,6 +58,7 @@ const numInput: CSSProperties = {
 
 export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: SystemConfigPageProps) {
   const isParoco = usuario.papel === 'paroquia' || usuario.papel === 'admin';
+  const { palette, setPalette } = useTheme();
 
   // ── Dados da paróquia ──────────────────────────────────────────────────────
   const [form, setForm] = useState<Paroquia>(paroquia);
@@ -66,7 +69,7 @@ export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: Syste
   const [fazendoBackup, setFazendoBackup] = useState(false);
   const [restaurando, setRestaurando] = useState(false);
   const [backupInfo, setBackupInfo] = useState(getBackupInfo());
-  const [abaAtiva, setAbaAtiva] = useState<"identidade" | "backup" | "partilha" | "usuarios" | "auditoria" | "sistema">("identidade");
+  const [abaAtiva, setAbaAtiva] = useState<"identidade" | "backup" | "partilha" | "usuarios" | "auditoria" | "aparencia" | "sistema">("identidade");
   const [desinstalando, setDesinstalando] = useState(false);
 
   // ── Partilha ───────────────────────────────────────────────────────────────
@@ -210,6 +213,7 @@ export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: Syste
 
   const abas = [
     { id: "identidade", label: "🏛️ Identidade" },
+    { id: "aparencia",  label: "🎨 Aparência" },
     { id: "backup",     label: "💾 Backup" },
     ...(isParoco ? [
       { id: "partilha",  label: "⚖️ Partilha" },
@@ -576,6 +580,55 @@ export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: Syste
                 ))}
               </tbody>
             </table>
+          </div>
+        </section>
+      )}
+
+      {/* ── Aparência ── */}
+      {abaAtiva === "aparencia" && (
+        <section style={{ background: "white", borderRadius: 18, border: "1px solid #e4e7ec", padding: 28 }}>
+          <h2 style={{ margin: "0 0 8px", fontSize: 20, color: "#1a1d2e" }}>🎨 Paleta de Cores</h2>
+          <p style={{ margin: "0 0 24px", color: "#667085", fontSize: 14, lineHeight: 1.6 }}>
+            Escolha a paleta de cores do sistema. A mudança é aplicada imediatamente em toda a interface.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 14 }}>
+            {PALETTES.map(p => {
+              const selected = palette === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setPalette(p.id as Palette)}
+                  style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+                    padding: "20px 16px", borderRadius: 14, cursor: "pointer",
+                    border: selected ? `2px solid ${p.color}` : "2px solid #e4e7ec",
+                    background: selected ? `${p.color}0D` : "#fafafa",
+                    transition: "all 0.2s ease",
+                    boxShadow: selected ? `0 4px 16px ${p.color}25` : "none",
+                  }}
+                >
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 14,
+                    background: `linear-gradient(135deg, ${p.color}, ${p.color}BB)`,
+                    boxShadow: `0 4px 12px ${p.color}40`,
+                  }} />
+                  <span style={{
+                    fontSize: 13, fontWeight: selected ? 700 : 600,
+                    color: selected ? p.color : "#475467",
+                  }}>
+                    {p.label}
+                  </span>
+                  {selected && (
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, color: "white",
+                      background: p.color, borderRadius: 6, padding: "2px 8px",
+                    }}>
+                      Ativo
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </section>
       )}

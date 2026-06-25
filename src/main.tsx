@@ -5,6 +5,12 @@ import { ErrorBoundary } from "./core/ui/ErrorBoundary";
 import { logger } from "./core/utils/logger";
 import App from "./App";
 
+// Aplica paleta salva antes do primeiro render para evitar flash
+const savedPalette = localStorage.getItem("paleta");
+if (savedPalette && savedPalette !== "azul") {
+  document.documentElement.setAttribute("data-palette", savedPalette);
+}
+
 async function bootstrap() {
   const rootElement =
     document.getElementById("root");

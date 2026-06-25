@@ -156,7 +156,7 @@ const dadosVazios: DadosCrisma = {
   nome: "", dataNasc: "", rgCpf: "", cpf: "", endereco: "", tel: "", email: "", escolaridade: "", paroquiaAtual: "",
   dataBatismo: "", localBatismo: "", dataEucaristia: "", localEucaristia: "",
   mae: "", pai: "", responsavel: "", estadoCivilPais: "",
-  padrinho: "", madrinha: "", estadoCivilCrismando: "", valorTaxa: "", certidaoBatismo: "", certidaoEucaristia: ""
+  padrinho: "", madrinha: "", estadoCivilCrismando: "", valorTaxa: "", certidaoBatismo: "", certidaoEucaristia: "", documentoRetirado: "Não"
 };
 
 export function CrismaPage({ paroquia }: CrismaPageProps) {
@@ -214,7 +214,7 @@ export function CrismaPage({ paroquia }: CrismaPageProps) {
           busca={busca}
           recarregarKey={recarregarKey}
           onExcluir={() => { setEditandoId(null); setDados({ ...dadosVazios }); }}
-          onSelecionar={(d, registro) => { const data = d as Record<string, string>; setEditandoId(registro.id); setDados({ nome: data.nome||"", dataNasc: data.dataNasc||"", rgCpf: data.rgCpf||"", cpf: data.cpf||"", endereco: data.endereco||"", tel: data.tel||"", email: data.email||"", escolaridade: data.escolaridade||"", paroquiaAtual: data.paroquiaAtual||"", dataBatismo: data.dataBatismo||"", localBatismo: data.localBatismo||"", dataEucaristia: data.dataEucaristia||"", localEucaristia: data.localEucaristia||"", mae: data.mae||"", pai: data.pai||"", responsavel: data.responsavel||"", estadoCivilPais: data.estadoCivilPais||"", padrinho: data.padrinho||"", madrinha: data.madrinha||"", estadoCivilCrismando: data.estadoCivilCrismando||"", valorTaxa: data.valorTaxa||"", certidaoBatismo: data.certidaoBatismo||"", certidaoEucaristia: data.certidaoEucaristia||"" }); }}
+          onSelecionar={(d, registro) => { const data = d as Record<string, string>; setEditandoId(registro.id); setDados({ nome: data.nome||"", dataNasc: data.dataNasc||"", rgCpf: data.rgCpf||"", cpf: data.cpf||"", endereco: data.endereco||"", tel: data.tel||"", email: data.email||"", escolaridade: data.escolaridade||"", paroquiaAtual: data.paroquiaAtual||"", dataBatismo: data.dataBatismo||"", localBatismo: data.localBatismo||"", dataEucaristia: data.dataEucaristia||"", localEucaristia: data.localEucaristia||"", mae: data.mae||"", pai: data.pai||"", responsavel: data.responsavel||"", estadoCivilPais: data.estadoCivilPais||"", padrinho: data.padrinho||"", madrinha: data.madrinha||"", estadoCivilCrismando: data.estadoCivilCrismando||"", valorTaxa: data.valorTaxa||"", certidaoBatismo: data.certidaoBatismo||"", certidaoEucaristia: data.certidaoEucaristia||"", documentoRetirado: data.documentoRetirado||"Não" }); }}
         />
 
         {/* 1. DADOS PESSOAIS */}
@@ -270,6 +270,7 @@ export function CrismaPage({ paroquia }: CrismaPageProps) {
         <div style={styles.row}>
           <div style={styles.fieldGroup}><label style={styles.label}>Estado Civil Crismando</label><input style={styles.input} placeholder="Solteiro, Casado, Amasiado..." value={dados.estadoCivilCrismando} onChange={e => atualizar('estadoCivilCrismando', e.target.value)} /></div>
           <div style={styles.fieldGroup}><label style={styles.label}>Valor da Taxa (R$)</label><input style={styles.input} value={dados.valorTaxa} onChange={e => atualizar('valorTaxa', e.target.value)} /></div>
+          <div style={styles.fieldGroup}><label style={styles.label}>Documento Retirado?</label><select style={styles.input} value={dados.documentoRetirado || "Não"} onChange={e => atualizar('documentoRetirado', e.target.value)}><option value="Não">Não</option><option value="Sim">Sim</option></select></div>
         </div>
 
         <div style={styles.obsBox}>

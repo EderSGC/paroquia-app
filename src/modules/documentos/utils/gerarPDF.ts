@@ -267,7 +267,7 @@ export class PdfDoc {
     this.doc.setDrawColor(31, 59, 115);
     this.doc.setLineWidth(0.6);
     this.doc.line(ML, this.y, this.W - MR, this.y);
-    this.y += 8;
+    this.y += 5;
 
     return this;
   }
@@ -436,7 +436,7 @@ export class PdfDoc {
 
     const linhas = this.doc.splitTextToSize(texto.toUpperCase(), this.cw);
     this.doc.text(linhas, this.W / 2, this.y, { align: "center" });
-    this.y += linhas.length * 7 + 8;
+    this.y += linhas.length * 6 + 4;
 
     return this;
   }
@@ -523,7 +523,7 @@ export class PdfDoc {
       }
     }
 
-    this.y += 2;
+    this.y += 1;
     return this;
   }
 
@@ -535,7 +535,7 @@ export class PdfDoc {
     this.doc.setDrawColor(180, 180, 180);
     this.doc.setLineWidth(0.3);
     this.doc.line(ML, this.y, this.W - MR, this.y);
-    this.y += 7;
+    this.y += 4;
     return this;
   }
 
@@ -554,8 +554,8 @@ export class PdfDoc {
    * linha, nome em negrito e cargo abaixo.
    */
   addAssinatura(nome: string, cargo: string): this {
-    this.checkPage(30);
-    this.y += 10;
+    this.checkPage(25);
+    this.y += 6;
 
     const cx   = ML + this.cw / 2;
     const linW = this.cw * 0.4;
@@ -590,8 +590,8 @@ export class PdfDoc {
     esq: { label: string; nome?: string; cargo?: string },
     dir: { label: string; nome?: string; cargo?: string }
   ): this {
-    this.checkPage(30);
-    this.y += 15;
+    this.checkPage(25);
+    this.y += 8;
 
     const col1x = ML + this.cw * 0.05;
     const col2x = ML + this.cw * 0.55;
@@ -641,11 +641,11 @@ export class PdfDoc {
    */
   addCamposGrid(
     campos: { label: string; value: string }[],
-    colunas: 1 | 2 = 2,
+    colunas: 1 | 2 | 3 = 2,
     noLines = false
   ): this {
     const gap      = 8;
-    const colW     = colunas === 2 ? (this.cw - gap) / 2 : this.cw;
+    const colW     = colunas === 3 ? (this.cw - gap * 2) / 3 : colunas === 2 ? (this.cw - gap) / 2 : this.cw;
     const lblLineH = 4;   // espaçamento entre linhas do label
     const valLineH = 5.5; // espaçamento entre linhas do valor
 
@@ -668,7 +668,7 @@ export class PdfDoc {
         maxValLines = Math.max(maxValLines, val.length);
       }
 
-      const rowH = maxLblLines * lblLineH + maxValLines * valLineH + 8;
+      const rowH = maxLblLines * lblLineH + maxValLines * valLineH + 1;
       this.checkPage(rowH + 4);
 
       for (let c = 0; c < colunas && i + c < campos.length; c++) {
@@ -695,9 +695,9 @@ export class PdfDoc {
           this.doc.text(linha, x, valueY + li * valLineH);
         });
 
-        // Linha inferior
-        if (!noLines) {
-          const lineY = this.y + maxLblLines * lblLineH + maxValLines * valLineH + 3;
+        // Linha inferior (desativada para layout compacto)
+        if (!noLines && false) {
+          const lineY = this.y + maxLblLines * lblLineH + maxValLines * valLineH + 1;
           this.doc.setDrawColor(208, 213, 221);
           this.doc.setLineWidth(0.3);
           this.doc.line(x, lineY, x + colW, lineY);
@@ -707,7 +707,7 @@ export class PdfDoc {
       this.y += rowH;
     }
 
-    this.y += 5;
+    this.y += 2;
     return this;
   }
 

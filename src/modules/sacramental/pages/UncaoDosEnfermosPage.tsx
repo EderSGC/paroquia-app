@@ -144,7 +144,8 @@ const DADOS_VAZIO: DadosUncao = {
   tipoComunidade: "existente",
   dataVisita: new Date().toISOString().split('T')[0],
   visitante: "",
-  anotacoes: ""
+  anotacoes: "",
+  documentoRetirado: "Não"
 };
 
 export function UncaoDosEnfermosPage({ paroquia: paroquiaDados }: UncaoProps) {
@@ -303,7 +304,8 @@ ${formatRTF(dados.anotacoes)}\\par
               tipoComunidade,
               dataVisita: data.dataVisita || "",
               visitante: data.visitante || "",
-              anotacoes: data.anotacoes || ""
+              anotacoes: data.anotacoes || "",
+              documentoRetirado: data.documentoRetirado || "Não"
             });
           }}
         />
@@ -390,6 +392,10 @@ ${formatRTF(dados.anotacoes)}\\par
           <div style={styles.fieldGroup}>
             <label style={styles.label}>Relatório Pastoral</label>
             <textarea style={styles.textarea} value={dados.anotacoes} onChange={e => atualizar('anotacoes', e.target.value)} />
+          </div>
+          <div style={styles.fieldGroup}>
+            <label style={styles.label}>Documento Retirado?</label>
+            <select style={styles.input} value={dados.documentoRetirado || "Não"} onChange={e => atualizar('documentoRetirado', e.target.value)}><option value="Não">Não</option><option value="Sim">Sim</option></select>
           </div>
 
           <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>

@@ -110,7 +110,7 @@ export function BatismoPage({ paroquia }: BatismoPageProps) {
     livro: "", numeroFicha: "", pagina: "", inicioFormacao: "", terminoFormacao: "",
     paiNome: "", paiDataNasc: "", paiNascidoEm: "", paiMae: "", paiPai: "", paiEndereco: "", paiComunidade: "", paiTelefone: "",
     maeNome: "", maeDataNasc: "", maeNascidoEm: "", maeMae: "", maePai: "", maeEndereco: "", maeComunidade: "", maeTelefone: "",
-    frequentaAtividades: "", qualAtividade: "", membroPastoral: "", qualPastoral: "", seCompromete: "", contribuiFinanceiramente: "", eDizimista: "", razaoBatismo: ""
+    frequentaAtividades: "", qualAtividade: "", membroPastoral: "", qualPastoral: "", seCompromete: "", contribuiFinanceiramente: "", eDizimista: "", razaoBatismo: "", documentoRetirado: "Não"
   });
 
   const [padrinhos, setPadrinhos] = useState<DadosPadrinhos>({
@@ -327,6 +327,7 @@ return (
               <div style={styles.fieldGroup}><label style={styles.label}>Você contribui financeiramente?</label><input style={styles.input} autoComplete="off" placeholder="Sim / Não" value={dados.contribuiFinanceiramente} onChange={e => atualizar('contribuiFinanceiramente', e.target.value)} /></div>
             </div>
             <div style={styles.fieldGroup}><label style={styles.label}>Razão do Batismo</label><input style={styles.input} autoComplete="off" placeholder="Descreva brevemente o motivo" value={dados.razaoBatismo} onChange={e => atualizar('razaoBatismo', e.target.value)} /></div>
+            <div style={styles.fieldGroup}><label style={styles.label}>Documento Retirado?</label><select style={styles.input} value={dados.documentoRetirado || "Não"} onChange={e => atualizar('documentoRetirado', e.target.value)}><option value="Não">Não</option><option value="Sim">Sim</option></select></div>
           </div>
         ) : (
           <div>

@@ -7,7 +7,7 @@ const ex = (v?: string) => v?.trim() || "—";
 // ── Cabeçalho de seção (label negrito sem corpo) ─────────────────────────────
 function secHeader(doc: PdfDoc, label: string) {
   doc.addTexto(label, { bold: true });
-  doc.addEspaco(3);
+  doc.addEspaco(1);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ export async function gerarPDFFichaBatizando(
   ]);
 
   // Rodapé
-  doc.addEspaco(8);
+  doc.addEspaco(4);
   doc.addTexto(
     "O Batismo Caracteriza o Espirito de Pertença e inclui fraternalmente na Comunidade Católica. Somos uma Igreja Família de Deus portanto uma Igreja missionária.",
     { align: "center" }
@@ -136,11 +136,9 @@ export async function gerarPDFFichaPadrinhos(
   secHeader(doc, "DADOS DO PADRINHO");
   doc.addCamposGrid([
     { label: "Nome", value: ex(p.padrinhoNome) },
-  ], 1);
-  doc.addCamposGrid([
     { label: "Data de Nascimento", value: ex(p.padrinhoDataNasc) },
     { label: "Nascido em", value: ex(p.padrinhoNascidoEm) },
-  ]);
+  ], 3);
   doc.addCamposGrid([
     { label: "Mãe", value: ex(p.padrinhoMae) },
     { label: "Pai", value: ex(p.padrinhoPai) },
@@ -158,11 +156,9 @@ export async function gerarPDFFichaPadrinhos(
   secHeader(doc, "DADOS DA MADRINHA");
   doc.addCamposGrid([
     { label: "Nome", value: ex(p.madrinhaNome) },
-  ], 1);
-  doc.addCamposGrid([
     { label: "Data de Nascimento", value: ex(p.madrinhaDataNasc) },
     { label: "Nascida em", value: ex(p.madrinhaNascidoEm) },
-  ]);
+  ], 3);
   doc.addCamposGrid([
     { label: "Mãe", value: ex(p.madrinhaMae) },
     { label: "Pai", value: ex(p.madrinhaPai) },
@@ -251,7 +247,7 @@ export async function gerarPDFFichaPadrinhos(
   ]);
 
   // Data e Assinaturas
-  doc.addEspaco(6);
+  doc.addEspaco(3);
   if (p.dataManaus?.trim()) {
     doc.addTexto(`Manaus, ${p.dataManaus}`, { align: "right" });
   }
@@ -278,7 +274,7 @@ export async function gerarPDFCrisma(
 
   // ── 1. Dados Pessoais ─────────────────────────────────────────────────────
   doc.addTexto("1. DADOS PESSOAIS DO CRISMANDO(A)", { bold: true });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
   doc.addCamposGrid([
     { label: "Nome Completo", value: ex(dados.nome) },
     { label: "Data de Nascimento", value: ex(dados.dataNasc) },
@@ -298,7 +294,7 @@ export async function gerarPDFCrisma(
   // ── 2. Dados Sacramentais ─────────────────────────────────────────────────
   doc.addLinha();
   doc.addTexto("2. DADOS SACRAMENTAIS", { bold: true });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
   doc.addCamposGrid([
     { label: "Data do Batismo", value: ex(dados.dataBatismo) },
     { label: "Local (Paróquia/Cidade) do Batismo", value: ex(dados.localBatismo) },
@@ -309,7 +305,7 @@ export async function gerarPDFCrisma(
   // ── 3. Dados da Família ───────────────────────────────────────────────────
   doc.addLinha();
   doc.addTexto("3. DADOS DA FAMÍLIA", { bold: true });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
   doc.addCamposGrid([
     { label: "Nome da Mãe", value: ex(dados.mae) },
     { label: "Nome do Pai", value: ex(dados.pai) },
@@ -320,7 +316,7 @@ export async function gerarPDFCrisma(
   // ── 4. Padrinho / Madrinha ────────────────────────────────────────────────
   doc.addLinha();
   doc.addTexto("4. PADRINHO / MADRINHA E INFORMAÇÕES ADICIONAIS", { bold: true });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
   doc.addCamposGrid([
     { label: "Nome Completo do Padrinho", value: ex(dados.padrinho) },
     { label: "Nome Completo da Madrinha", value: ex(dados.madrinha) },
@@ -353,7 +349,7 @@ export async function gerarPDFEucaristia(
 
   // ── 1. Dados do Comunicante ───────────────────────────────────────────────
   doc.addTexto("1. DADOS DO COMUNICANTE", { bold: true });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
   doc.addCamposGrid([
     { label: "Nome Completo do Comunicante", value: ex(dados.nome) },
     { label: "Comunidade / Paróquia", value: ex(dados.comunidade) },
@@ -362,7 +358,7 @@ export async function gerarPDFEucaristia(
   // ── 2. Dados da Formação e Celebração ────────────────────────────────────
   doc.addLinha();
   doc.addTexto("2. DADOS DA FORMAÇÃO E CELEBRAÇÃO", { bold: true });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
   doc.addCamposGrid([
     { label: "Turma de Catequese", value: ex(dados.turma) },
     { label: "Catequista Responsável", value: ex(dados.catequista) },
@@ -377,13 +373,13 @@ export async function gerarPDFEucaristia(
   } else {
     doc.addLinha();
     doc.addTexto("3. OBSERVAÇÕES PASTORAIS", { bold: true });
-    doc.addEspaco(5);
+    doc.addEspaco(2);
     doc.addCamposGrid([{ label: "Observações", value: " " }], 1, true);
-    doc.addEspaco(10);
+    doc.addEspaco(4);
   }
 
   // ── Citação pastoral ──────────────────────────────────────────────────────
-  doc.addEspaco(6);
+  doc.addEspaco(3);
   doc.addTexto(
     '"Eu sou o pão da vida. Quem vem a mim não terá fome, e quem crê em mim nunca terá sede."',
     { align: "center" }
@@ -414,7 +410,7 @@ export async function gerarPDFMatrimonio(
 
   // ── 1. DADOS DO NOIVO ────────────────────────────────────────────────────
   doc.addTexto("1. DADOS DO NOIVO", { bold: true });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
   doc.addCamposGrid([
     { label: "Nome Completo", value: ex(dados.noivoNome) },
     { label: "Estado Civil", value: ex(dados.noivoEstadoCivil) },
@@ -453,7 +449,7 @@ export async function gerarPDFMatrimonio(
   // ── 2. DADOS DA NOIVA ────────────────────────────────────────────────────
   doc.addLinha();
   doc.addTexto("2. DADOS DA NOIVA", { bold: true });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
   doc.addCamposGrid([
     { label: "Nome Completo", value: ex(dados.noivaNome) },
     { label: "Estado Civil", value: ex(dados.noivaEstadoCivil) },
@@ -492,7 +488,7 @@ export async function gerarPDFMatrimonio(
   // ── 3. ENTREVISTA DOS NUBENTES ────────────────────────────────────────────
   doc.addLinha();
   doc.addTexto("3. ENTREVISTA DOS NUBENTES", { bold: true });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
   const perguntas = [
     "Consciente da importância do sacramento?",
     "Aceita a indissolubilidade (para sempre)?",
@@ -514,7 +510,7 @@ export async function gerarPDFMatrimonio(
   }
   doc.addLinha();
   doc.addTexto("Endereço dos Nubentes após o Matrimônio", { bold: true });
-  doc.addEspaco(3);
+  doc.addEspaco(1);
   doc.addCamposGrid([
     { label: "Rua", value: ex(dados.futRua) },
     { label: "Número", value: ex(dados.futNum) },
@@ -531,7 +527,7 @@ export async function gerarPDFMatrimonio(
   // ── 4. PROCLAMAS, CELEBRAÇÃO E DISPENSAS ────────────────────────────────
   doc.addLinha();
   doc.addTexto("4. PROCLAMAS E CELEBRAÇÃO", { bold: true });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
   doc.addCamposGrid([
     { label: "1ª Publicação", value: ex(dados.proc1) },
     { label: "2ª Publicação", value: ex(dados.proc2) },
@@ -558,7 +554,7 @@ export async function gerarPDFMatrimonio(
   ]);
   doc.addLinha();
   doc.addTexto("Dispensas e Documentos", { bold: true });
-  doc.addEspaco(3);
+  doc.addEspaco(1);
   doc.addCamposGrid([
     { label: "Autorização para outro Sacerdote", value: ex(dados.autorizacaoPadre) },
     { label: "Transferência para outra Paróquia", value: ex(dados.transfParoquia) },
@@ -575,7 +571,7 @@ export async function gerarPDFMatrimonio(
   // ── 5. ATA E TESTEMUNHAS ─────────────────────────────────────────────────
   doc.addLinha();
   doc.addTexto("5. ATA DA CELEBRAÇÃO DO MATRIMÔNIO", { bold: true });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
   doc.addCamposGrid([
     { label: "Dia", value: ex(dados.ataDia) },
     { label: "Mês", value: ex(dados.ataMes) },
@@ -594,7 +590,7 @@ export async function gerarPDFMatrimonio(
   ]);
   doc.addLinha();
   doc.addTexto("Testemunhas", { bold: true });
-  doc.addEspaco(3);
+  doc.addEspaco(1);
   for (let i = 1; i <= 6; i++) {
     const nomeVal = ex(dados[`test${i}Nome`]);
     const endVal  = ex(dados[`test${i}End`]);
@@ -696,24 +692,24 @@ export async function gerarPDFCertBatismo(
   doc.addTextoEstilo("CERTIDÃO DE BATISMO", { fontSize: 18, bold: true, align: "center", color: [20, 20, 20] });
   doc.addEspaco(4);
   doc.addTextoEstilo(v(form.nome, "___________________________"), { fontSize: 17, bold: true, align: "center", color: [31, 59, 115] });
-  doc.addEspaco(7);
+  doc.addEspaco(3);
 
   doc.addTextoEstilo(`Nascido(a) em ${v(form.naturalidade, "________")}, no dia ${v(form.nascimento, "____/____/____")},`, { align: "center" });
   doc.addTextoEstilo(`filho(a) de ${v(form.pais)}.`, { align: "center" });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
 
   const func = form.funcaoCelebrante?.trim() ? ` (${form.funcaoCelebrante.trim()})` : "";
   doc.addTextoEstilo(`Foi batizado(a) solenemente pelo ${v(form.celebrante)}${func}`, { align: "center" });
   doc.addTextoEstilo(`no dia ${v(form.dataBatismo, "________")}, na ${v(form.localBatismo)}`, { align: "center" });
   doc.addTextoEstilo(`desta Área Missionária ${paroquia.nome}.`, { align: "center" });
-  doc.addEspaco(7);
+  doc.addEspaco(3);
 
   doc.addTextoEstilo("Foram seus padrinhos:", { align: "center" });
-  doc.addEspaco(3);
+  doc.addEspaco(1);
   doc.addTextoEstilo(v(form.padrinho, "________"), { fontSize: 13, bold: true, align: "center" });
   doc.addTextoEstilo("e", { italic: true, align: "center" });
   doc.addTextoEstilo(v(form.madrinha, "________"), { fontSize: 13, bold: true, align: "center" });
-  doc.addEspaco(7);
+  doc.addEspaco(3);
 
   doc.addTextoEstilo(
     `E para constar, foi lavrado o presente termo no livro nº ${v(form.livro, "___")}, folha nº ${v(form.folha, "___")}, sob o nº ${v(form.termo, "___")}.`,
@@ -733,27 +729,27 @@ export async function gerarPDFCertCrisma(
   await doc.addCabecalho(paroquia);
 
   doc.addTextoEstilo("Lembrança da Crisma", { fontSize: 20, bold: true, align: "center", color: [31, 59, 115] });
-  doc.addEspaco(3);
+  doc.addEspaco(1);
   doc.addTextoEstilo('"Recebe por este sinal o Espírito Santo, o dom de Deus!"', { italic: true, align: "center", color: [55, 65, 81] });
-  doc.addEspaco(7);
+  doc.addEspaco(3);
 
   doc.addTextoEstilo("Certificamos que", { align: "center" });
   doc.addEspaco(2);
   doc.addTextoEstilo(v(form.fiel, "____________________________________"), { fontSize: 16, bold: true, align: "center" });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
 
   doc.addTextoEstilo(`recebeu o Sacramento da Confirmação no dia ${v(form.dataCrisma, "___/___/___")},`, { align: "center" });
   doc.addTextoEstilo(`na ${v(form.local)},`, { align: "center" });
   doc.addTextoEstilo(`desta ${paroquia.nome}.`, { align: "center" });
-  doc.addEspaco(6);
+  doc.addEspaco(3);
 
   doc.addCaixaCitacao("Dons do Espírito Santo: Sabedoria • Entendimento • Conselho • Fortaleza • Ciência • Piedade • Temor a Deus");
-  doc.addEspaco(5);
+  doc.addEspaco(2);
 
   doc.addTextoEstilo(`Padrinho/Madrinha: ${v(form.padrinhoMadrinha)}    |    Catequista: ${v(form.catequista)}`, { align: "center" });
   doc.addEspaco(2);
   doc.addTextoEstilo(`Celebrante: ${v(form.celebrante)}`, { align: "center" });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
 
   doc.addTextoEstilo(
     `Registrado no Livro nº ${v(form.livro, "___")}, folha nº ${v(form.folha, "___")}, termo nº ${v(form.termo, "___")}.`,
@@ -773,23 +769,23 @@ export async function gerarPDFCertEucaristia(
   await doc.addCabecalho(paroquia);
 
   doc.addTextoEstilo("LEMBRANÇA DA PRIMEIRA EUCARISTIA", { fontSize: 18, bold: true, align: "center", color: [31, 59, 115] });
-  doc.addEspaco(7);
+  doc.addEspaco(3);
 
   doc.addTextoEstilo("Certificamos que", { align: "center" });
-  doc.addEspaco(3);
+  doc.addEspaco(1);
   doc.addTextoEstilo(v(form.fiel, "________________________________"), { fontSize: 17, bold: true, align: "center" });
-  doc.addEspaco(5);
+  doc.addEspaco(2);
 
   doc.addTextoEstilo(`recebeu pela primeira vez o Pão da Vida no dia ${v(form.dataEucaristia, "___/___/___")},`, { align: "center" });
   doc.addTextoEstilo(`na ${v(form.local)},`, { align: "center" });
   doc.addTextoEstilo(`desta ${paroquia.nome}.`, { align: "center" });
-  doc.addEspaco(7);
+  doc.addEspaco(3);
 
   doc.addCaixaCitacao("Quem come a minha carne e bebe o meu sangue tem a vida eterna, e eu o ressuscitarei no último dia. (João 6:54)");
-  doc.addEspaco(5);
+  doc.addEspaco(2);
 
   doc.addTextoEstilo(`Catequista: ${v(form.catequista)}    |    Celebrante: ${v(form.celebrante)}`, { align: "center" });
-  doc.addEspaco(3);
+  doc.addEspaco(1);
 
   doc.addAssinaturaDir(form.cidadeData || "", form.assinante || "", form.cargoAssinante || "");
   await doc.salvar(`Lembrança da 1ª Eucaristia — ${v(form.fiel, "sem nome")}`);
@@ -804,7 +800,7 @@ export async function gerarPDFCertMatrimonio(
   await doc.addCabecalho(paroquia);
 
   doc.addTextoEstilo("CERTIDÃO DE MATRIMÔNIO", { fontSize: 18, bold: true, align: "center", color: [20, 20, 20] });
-  doc.addEspaco(7);
+  doc.addEspaco(3);
 
   doc.addTextoEstilo("Certificamos que, perante a Igreja de Deus e as leis sagradas, uniram-se em matrimônio:", { align: "center" });
   doc.addEspaco(4);
@@ -812,7 +808,7 @@ export async function gerarPDFCertMatrimonio(
   doc.addTextoEstilo(v(form.esposo, "_________________________"), { fontSize: 16, bold: true, align: "center" });
   doc.addTextoEstilo("e", { italic: true, align: "center" });
   doc.addTextoEstilo(v(form.esposa, "_________________________"), { fontSize: 16, bold: true, align: "center" });
-  doc.addEspaco(6);
+  doc.addEspaco(3);
 
   doc.addTextoEstilo(`A cerimônia foi realizada no dia ${v(form.dataMatrimonio, "________")},`, { align: "center" });
   doc.addTextoEstilo(`na ${v(form.local)},`, { align: "center" });
@@ -821,14 +817,14 @@ export async function gerarPDFCertMatrimonio(
 
   const funcCel = form.funcaoCelebrante?.trim() ? ` (${form.funcaoCelebrante.trim()})` : "";
   doc.addTextoEstilo(`Celebrada solenemente pelo Revmo. ${v(form.celebrante)}${funcCel}.`, { align: "center" });
-  doc.addEspaco(7);
+  doc.addEspaco(3);
 
   doc.addTextoEstilo("Foram testemunhas deste ato sagrado:", { align: "center" });
   doc.addEspaco(2);
   doc.addTextoEstilo(v(form.testemunha1, "________"), { fontSize: 13, bold: true, align: "center" });
   doc.addTextoEstilo("e", { bold: true, align: "center" });
   doc.addTextoEstilo(v(form.testemunha2, "________"), { fontSize: 13, bold: true, align: "center" });
-  doc.addEspaco(6);
+  doc.addEspaco(3);
 
   doc.addTextoEstilo(
     `E para que este ato tenha validade jurídica e eclesiástica, foi lavrado o termo no livro nº ${v(form.livro, "___")}, folha nº ${v(form.folha, "___")}, sob o nº ${v(form.termo, "___")}.`,
