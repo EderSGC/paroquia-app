@@ -8,11 +8,27 @@ interface SQLiteColumn {
   type: string;
 }
 
+const VALID_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+const SAFE_DEFAULT = /^(?:NULL|CURRENT_TIMESTAMP|CURRENT_DATE|CURRENT_TIME|-?\d+(?:\.\d+)?|'[^']*')$/i;
+
+function assertSafeIdentifier(name: string): void {
+  if (!VALID_IDENTIFIER.test(name)) {
+    throw new Error(`Identificador SQL inseguro: "${name}"`);
+  }
+}
+
+function assertSafeDefault(value: string): void {
+  if (!SAFE_DEFAULT.test(value)) {
+    throw new Error(`Valor DEFAULT SQL inseguro: "${value}"`);
+  }
+}
+
 export async function getTableInfo(
   db: Database,
   tableName: string
 ): Promise<Record<string, string>> {
   try {
+    assertSafeIdentifier(tableName);
     const result = await db.select<SQLiteColumn[]>(
       `PRAGMA table_info("${tableName}")`
     );
@@ -35,8 +51,10 @@ export async function createTableFromSchema(
   db: Database,
   tableSchema: TableSchema
 ): Promise<void> {
+  assertSafeIdentifier(tableSchema.name);
   const columnDefs = tableSchema.columns
     .map((col) => {
+      assertSafeIdentifier(col.name);
       let def = `${col.name} ${col.type}`;
 
       if (col.notNull) {
@@ -44,6 +62,7 @@ export async function createTableFromSchema(
       }
 
       if (col.default) {
+        assertSafeDefault(col.default);
         def += ` DEFAULT ${col.default}`;
       }
 
@@ -52,7 +71,7 @@ export async function createTableFromSchema(
     .join(", ");
 
   await db.execute(`
-    CREATE TABLE IF NOT EXISTS ${tableSchema.name}
+    CREATE TABLE IF NOT EXISTS "${tableSchema.name}"
     (${columnDefs})
   `);
 
@@ -75,11 +94,14 @@ export async function addMissingColumns(
 
   const addedColumns: string[] = [];
 
+  assertSafeIdentifier(tableSchema.name);
   for (const column of tableSchema.columns) {
     if (!existingColumns[column.name]) {
+      assertSafeIdentifier(column.name);
       let sql = `ALTER TABLE "${tableSchema.name}" ADD COLUMN "${column.name}" ${column.type}`;
 
       if (column.default && !NON_CONSTANT_DEFAULTS.has(column.default)) {
+        assertSafeDefault(column.default);
         sql += ` DEFAULT ${column.default}`;
       }
 

@@ -31,7 +31,7 @@ import { createDataUrl } from "../../../core/utils/image";
 import {
   salvarConfiguracoesParoquia,
   carregarPartilha, salvarPartilha,
-  listarUsuarios, criarUsuario, excluirUsuario,
+  listarUsuarios, criarUsuario, excluirUsuario, salvarPerguntaSeguranca,
   type ConfigPartilha, type UsuarioListItem,
 } from "../../auth/services/auth.service";
 
@@ -804,6 +804,58 @@ export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: Syste
               <div style={{ fontSize: 11, color: "#98a2b3" }}>
                 {navigator.platform.includes("Mac") ? "macOS" : navigator.platform.includes("Win") ? "Windows" : "Linux"}
               </div>
+            </div>
+          </div>
+
+          {/* Pergunta de Segurança */}
+          <div style={{ padding: "20px", background: "#eff6ff", borderRadius: 12, border: "1px solid #bfdbfe", marginBottom: 20 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1e40af", marginBottom: 6 }}>🔐 Pergunta de Segurança</h3>
+            <p style={{ fontSize: 12, color: "#1d4ed8", lineHeight: 1.6, marginBottom: 16 }}>
+              Configure uma pergunta de segurança para proteger a recuperação de senha da sua conta.
+              Ao redefinir a senha, além do nome completo, será exigida a resposta correta.
+            </p>
+            <div style={{ display: "grid", gap: 12, maxWidth: 400 }}>
+              <div>
+                <label style={labelStyle}>Pergunta</label>
+                <select
+                  id="pergunta-seguranca"
+                  style={inputStyle}
+                  defaultValue=""
+                  onChange={() => {}}
+                >
+                  <option value="">Selecione uma pergunta...</option>
+                  <option value="Qual o nome da sua mãe?">Qual o nome da sua mãe?</option>
+                  <option value="Em que cidade você nasceu?">Em que cidade você nasceu?</option>
+                  <option value="Qual o nome do seu primeiro animal de estimação?">Qual o nome do seu primeiro animal de estimação?</option>
+                  <option value="Qual o nome da sua escola primária?">Qual o nome da sua escola primária?</option>
+                  <option value="Qual o seu santo de devoção?">Qual o seu santo de devoção?</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Resposta</label>
+                <input id="resposta-seguranca" style={inputStyle} placeholder="Sua resposta (não diferencia maiúsculas)" />
+              </div>
+              <button
+                onClick={async () => {
+                  const perguntaEl = document.getElementById("pergunta-seguranca") as HTMLSelectElement;
+                  const respostaEl = document.getElementById("resposta-seguranca") as HTMLInputElement;
+                  const pergunta = perguntaEl?.value;
+                  const resposta = respostaEl?.value;
+                  if (!pergunta || !resposta?.trim()) {
+                    setAlerta({ tipo: "erro", msg: "Selecione uma pergunta e digite uma resposta." });
+                    return;
+                  }
+                  try {
+                    await salvarPerguntaSeguranca(usuario.id, pergunta, resposta);
+                    setAlerta({ tipo: "sucesso", msg: "🔐 Pergunta de segurança configurada com sucesso!" });
+                  } catch {
+                    setAlerta({ tipo: "erro", msg: "Erro ao salvar pergunta de segurança." });
+                  }
+                }}
+                style={{ background: "#1d4ed8", color: "white", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", width: "fit-content" }}
+              >
+                Salvar Pergunta de Segurança
+              </button>
             </div>
           </div>
 

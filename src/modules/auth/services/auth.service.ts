@@ -275,7 +275,7 @@ export async function salvarConfiguracoesParoquia(dados: ConfigParoquia): Promis
 
 // ─── 5. REDEFINIR SENHA ───────────────────────────────────────────────────────
 
-export async function redefinirSenha(login: string, nomeCompleto: string, novaSenha: string): Promise<boolean> {
+export async function redefinirSenha(login: string, nomeCompleto: string, novaSenha: string, respostaSeguranca?: string): Promise<boolean> {
   try {
     if (!login || !nomeCompleto || !novaSenha) return false;
     if (novaSenha.trim().length < SECURITY.MIN_PASSWORD_LENGTH) return false;
@@ -290,6 +290,13 @@ export async function redefinirSenha(login: string, nomeCompleto: string, novaSe
       await registrarAuditoria({ usuario_id: usuario.id, acao: "ALTERACAO", tabela: "usuarios", registro_id: usuario.id, descricao: `Tentativa de reset de senha: nome não confere para "${login}"` });
       return false;
     }
+    const respostaDb = (usuario as unknown as Record<string, unknown>).resposta_seguranca as string | null;
+    if (respostaDb) {
+      if (!respostaSeguranca || respostaSeguranca.trim().toLowerCase() !== respostaDb.trim().toLowerCase()) {
+        await registrarAuditoria({ usuario_id: usuario.id, acao: "ALTERACAO", tabela: "usuarios", registro_id: usuario.id, descricao: `Tentativa de reset de senha: resposta de segurança incorreta para "${login}"` });
+        return false;
+      }
+    }
     await db.execute("UPDATE usuarios SET senha=? WHERE id=?", [await hashSenha(novaSenha.trim()), usuario.id]);
     await registrarAuditoria({ usuario_id: usuario.id, acao: "ALTERACAO", tabela: "usuarios", registro_id: usuario.id, descricao: `Senha redefinida para "${login}"` });
     return true;
@@ -297,6 +304,26 @@ export async function redefinirSenha(login: string, nomeCompleto: string, novaSe
     console.error("Erro ao redefinir senha:", error);
     return false;
   }
+}
+
+export async function verificarPerguntaSeguranca(login: string): Promise<string | null> {
+  try {
+    const db = await getDb();
+    const res = await db.select<Record<string, unknown>[]>(
+      "SELECT pergunta_seguranca FROM usuarios WHERE LOWER(login)=LOWER(?) AND deleted_at IS NULL",
+      [login.trim()]
+    );
+    if (res.length === 0) return null;
+    return (res[0].pergunta_seguranca as string) || null;
+  } catch { return null; }
+}
+
+export async function salvarPerguntaSeguranca(usuarioId: number, pergunta: string, resposta: string): Promise<void> {
+  const db = await getDb();
+  await db.execute(
+    "UPDATE usuarios SET pergunta_seguranca=?, resposta_seguranca=? WHERE id=?",
+    [pergunta.trim(), resposta.trim().toLowerCase(), usuarioId]
+  );
 }
 
 // ─── 6. GESTÃO DE USUÁRIOS (admin) ───────────────────────────────────────────
