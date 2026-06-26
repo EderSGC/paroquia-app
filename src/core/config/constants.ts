@@ -11,7 +11,7 @@
 
 export const APP = {
   NAME: "Sistema Paroquial",
-  VERSION: "1.2.0",
+  VERSION: "1.5.0",
   COMPANY: "Paróquia",
   ENVIRONMENT: import.meta.env.MODE,
 } as const;

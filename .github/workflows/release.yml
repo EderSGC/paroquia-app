@@ -91,7 +91,7 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
-          echo "$TAURI_SIGNING_PRIVATE_KEY" > /tmp/tauri-signing.key
+          printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" | tr -d '\n\r' > /tmp/tauri-signing.key
           echo "Key file size: $(wc -c < /tmp/tauri-signing.key) bytes"
 
       - name: Download and sign updater assets
