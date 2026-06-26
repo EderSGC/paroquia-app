@@ -1,6 +1,6 @@
 import { getDb } from "../database";
 
-export type AcaoAuditoria = "INCLUSAO" | "ALTERACAO" | "EXCLUSAO" | "LOGIN" | "LOGOUT" | "BACKUP" | "RESTAURACAO";
+export type AcaoAuditoria = "INCLUSAO" | "ALTERACAO" | "EXCLUSAO" | "LOGIN" | "LOGOUT" | "BACKUP" | "RESTAURACAO" | "EXPORTACAO" | "IMPORTACAO";
 
 export interface EntradaAuditoria {
   usuario_id: number;
@@ -177,6 +177,8 @@ export const ACAO_LABEL: Record<AcaoAuditoria, string> = {
   LOGOUT:      "Logout",
   BACKUP:      "Backup",
   RESTAURACAO: "Restauração",
+  EXPORTACAO:  "Exportação",
+  IMPORTACAO:  "Importação",
 };
 
 export const ACAO_COR: Record<AcaoAuditoria, { bg: string; text: string }> = {
@@ -187,4 +189,6 @@ export const ACAO_COR: Record<AcaoAuditoria, { bg: string; text: string }> = {
   LOGOUT:      { bg: "#e0e7ff", text: "#3730a3" },
   BACKUP:      { bg: "#f3e8ff", text: "#6b21a8" },
   RESTAURACAO: { bg: "#fce7f3", text: "#9d174d" },
+  EXPORTACAO:  { bg: "#e0f2fe", text: "#075985" },
+  IMPORTACAO:  { bg: "#ecfdf5", text: "#064e3b" },
 };

@@ -83,7 +83,7 @@ class CatequeseMatriculaRepositoryClass extends BaseRepository<CatequeseMatricul
 
   async softDeleteByTurma(turmaId: number): Promise<void> {
     const db = await getDb();
-    await db.execute('UPDATE catequese_matriculas SET deleted_at = CURRENT_TIMESTAMP WHERE turma_id = $1', [turmaId]);
+    await db.execute('UPDATE catequese_matriculas SET deleted_at = CURRENT_TIMESTAMP WHERE turma_id = $1 AND deleted_at IS NULL', [turmaId]);
   }
 }
 
@@ -130,7 +130,7 @@ class CatequesePresencaRepositoryClass extends BaseRepository<CatequesePresenca>
 
   async registrarChamada(encontroId: number, chamada: PresencaPayloadAluno[]): Promise<void> {
     const db = await getDb();
-    await db.execute('BEGIN TRANSACTION');
+    await db.execute('SAVEPOINT chamada_sp');
     try {
       for (const aluno of chamada) {
         await db.execute(
@@ -138,9 +138,9 @@ class CatequesePresencaRepositoryClass extends BaseRepository<CatequesePresenca>
           [encontroId, aluno.matricula_id, aluno.status, aluno.justificativa ?? '', aluno.observacao ?? '']
         );
       }
-      await db.execute('COMMIT');
+      await db.execute('RELEASE SAVEPOINT chamada_sp');
     } catch (error) {
-      await db.execute('ROLLBACK');
+      try { await db.execute('ROLLBACK TO SAVEPOINT chamada_sp'); } catch { /* ok */ }
       throw error;
     }
   }

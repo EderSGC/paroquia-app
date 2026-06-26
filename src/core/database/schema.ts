@@ -472,6 +472,7 @@ export const EXPECTED_SCHEMA: TableSchema[] = [
       { name: "uuid",       type: "TEXT" },
       { name: "created_at", type: "DATETIME", default: "CURRENT_TIMESTAMP" },
       { name: "updated_at", type: "DATETIME", default: "CURRENT_TIMESTAMP" },
+      { name: "deleted_at", type: "DATETIME" },
     ],
   },
   {

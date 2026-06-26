@@ -13,6 +13,12 @@ import {
   fazerBackupNaPasta,
   formatarTamanho,
 } from "../../../core/services/backup.service";
+import {
+  exportarRegistros,
+  importarRegistros,
+  getTabelasSincronizaveis,
+  type SyncImportResult,
+} from "../../../core/services/sync.service";
 import { AuditoriaPage } from "../../configuracoes/pages/AuditoriaPage";
 
 import { AppLogo } from "../../../core/ui/AppLogo";
@@ -69,8 +75,16 @@ export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: Syste
   const [fazendoBackup, setFazendoBackup] = useState(false);
   const [restaurando, setRestaurando] = useState(false);
   const [backupInfo, setBackupInfo] = useState(getBackupInfo());
-  const [abaAtiva, setAbaAtiva] = useState<"identidade" | "backup" | "partilha" | "usuarios" | "auditoria" | "aparencia" | "sistema">("identidade");
+  const [abaAtiva, setAbaAtiva] = useState<"identidade" | "backup" | "sincronizacao" | "partilha" | "usuarios" | "auditoria" | "aparencia" | "sistema">("identidade");
   const [desinstalando, setDesinstalando] = useState(false);
+
+  // ── Sincronização ──────────────────────────────────────────────────────────
+  const tabelasSync = getTabelasSincronizaveis();
+  const [syncTabelas, setSyncTabelas] = useState<string[]>(tabelasSync.map(t => t.nome));
+  const [syncComunidadeId, setSyncComunidadeId] = useState<string>("");
+  const [exportando, setExportando] = useState(false);
+  const [importando, setImportando] = useState(false);
+  const [importResult, setImportResult] = useState<SyncImportResult | null>(null);
 
   // ── Partilha ───────────────────────────────────────────────────────────────
   const [partilha, setPartilha] = useState<ConfigPartilha>({ comunidade: 30, areaMissionaria: 40, arquidiocese: 29, fundoMissionario: 1 });
@@ -87,14 +101,19 @@ export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: Syste
 
   useEffect(() => { setForm(paroquia); }, [paroquia]);
 
+  useEffect(() => {
+    (async () => {
+      const db = await getDb();
+      const cs = await db.select<{ id: number; nome: string }[]>("SELECT id, nome FROM comunidades WHERE deleted_at IS NULL ORDER BY nome");
+      setComunidades(cs);
+    })();
+  }, []);
+
   const carregarDados = useCallback(async () => {
     if (!isParoco) return;
     const [p, us] = await Promise.all([carregarPartilha(), listarUsuarios()]);
     setPartilha(p);
     setUsuarios(us);
-    const db = await getDb();
-    const cs = await db.select<{ id: number; nome: string }[]>("SELECT id, nome FROM comunidades WHERE deleted_at IS NULL ORDER BY nome");
-    setComunidades(cs);
   }, [isParoco]);
 
   useEffect(() => { carregarDados(); }, [carregarDados]);
@@ -215,6 +234,7 @@ export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: Syste
     { id: "identidade", label: "🏛️ Identidade" },
     { id: "aparencia",  label: "🎨 Aparência" },
     { id: "backup",     label: "💾 Backup" },
+    { id: "sincronizacao", label: "🔄 Sincronização" },
     ...(isParoco ? [
       { id: "partilha",  label: "⚖️ Partilha" },
       { id: "usuarios",  label: "👥 Usuários" },
@@ -363,6 +383,141 @@ export function SystemConfigPage({ paroquia, usuario, onParoquiaUpdated }: Syste
           </div>
         </div>
       </section>
+      )}
+
+      {/* ── Sincronização ── */}
+      {abaAtiva === "sincronizacao" && (
+        <section style={{ background: "white", borderRadius: 18, border: "1px solid #e4e7ec", padding: 28 }}>
+          <h2 style={{ margin: "0 0 8px", fontSize: 20, color: "#1a1d2e" }}>🔄 Compartilhar Registros</h2>
+          <p style={{ margin: "0 0 24px", color: "#667085", fontSize: 14, lineHeight: 1.6 }}>
+            Exporte registros para compartilhar com outra instalação do sistema, ou importe registros recebidos.
+            A importação <strong>não apaga</strong> dados existentes — apenas adiciona novos e atualiza os que foram modificados.
+          </p>
+
+          {/* ── Exportar ── */}
+          <div style={{ background: "#f0fdf4", borderRadius: 14, border: "1px solid #bbf7d0", padding: 24, marginBottom: 24 }}>
+            <h3 style={{ margin: "0 0 8px", fontSize: 16, color: "#166534" }}>📤 Exportar Registros</h3>
+            <p style={{ margin: "0 0 16px", color: "#15803d", fontSize: 13, lineHeight: 1.6 }}>
+              Gera um arquivo <strong>.json</strong> com os registros selecionados. Salve no Google Drive, OneDrive, Dropbox ou envie por e-mail.
+            </p>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>Filtrar por Comunidade (opcional)</label>
+              <select
+                style={{ ...inputStyle, maxWidth: 360 }}
+                value={syncComunidadeId}
+                onChange={e => setSyncComunidadeId(e.target.value)}
+              >
+                <option value="">Todas as comunidades</option>
+                {comunidades.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>Tabelas para exportar</label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 8 }}>
+                {tabelasSync.map(t => (
+                  <label key={t.nome} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#344054", cursor: "pointer", padding: "6px 10px", borderRadius: 8, background: syncTabelas.includes(t.nome) ? "#dcfce7" : "#f8fafc", border: "1px solid #e4e7ec" }}>
+                    <input
+                      type="checkbox"
+                      checked={syncTabelas.includes(t.nome)}
+                      onChange={e => {
+                        if (e.target.checked) setSyncTabelas(prev => [...prev, t.nome]);
+                        else setSyncTabelas(prev => prev.filter(x => x !== t.nome));
+                      }}
+                    />
+                    {t.label}
+                  </label>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button onClick={() => setSyncTabelas(tabelasSync.map(t => t.nome))} style={{ background: "none", border: "1px solid #bbf7d0", borderRadius: 6, padding: "4px 10px", fontSize: 11, color: "#166534", cursor: "pointer", fontWeight: 600 }}>Selecionar Todas</button>
+                <button onClick={() => setSyncTabelas([])} style={{ background: "none", border: "1px solid #e4e7ec", borderRadius: 6, padding: "4px 10px", fontSize: 11, color: "#667085", cursor: "pointer", fontWeight: 600 }}>Limpar Seleção</button>
+              </div>
+            </div>
+
+            <button
+              disabled={exportando || syncTabelas.length === 0}
+              onClick={async () => {
+                setExportando(true);
+                try {
+                  const destino = await exportarRegistros({
+                    comunidadeId: syncComunidadeId ? Number(syncComunidadeId) : null,
+                    tabelas: syncTabelas,
+                    usuarioId: usuario.id,
+                  });
+                  setAlerta({ tipo: "sucesso", msg: `📤 Registros exportados com sucesso!\n\n📁 ${destino}\n\nEnvie este arquivo para a outra instalação do sistema.` });
+                } catch (e) {
+                  if ((e as Error)?.message !== "CANCELLED") {
+                    setAlerta({ tipo: "erro", msg: (e as Error).message || "Erro ao exportar registros." });
+                  }
+                } finally { setExportando(false); }
+              }}
+              style={{ background: "#059669", color: "white", border: "none", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: syncTabelas.length === 0 ? "not-allowed" : "pointer", opacity: (exportando || syncTabelas.length === 0) ? 0.6 : 1 }}
+            >
+              {exportando ? "⏳ Exportando..." : "📤 Exportar Registros"}
+            </button>
+          </div>
+
+          {/* ── Importar ── */}
+          <div style={{ background: "#eff6ff", borderRadius: 14, border: "1px solid #bfdbfe", padding: 24 }}>
+            <h3 style={{ margin: "0 0 8px", fontSize: 16, color: "#1e40af" }}>📥 Importar Registros</h3>
+            <p style={{ margin: "0 0 16px", color: "#1d4ed8", fontSize: 13, lineHeight: 1.6 }}>
+              Selecione um arquivo <strong>.json</strong> recebido de outra instalação. Registros novos serão adicionados e existentes serão atualizados (se mais recentes). <strong>Nenhum dado existente será apagado.</strong>
+            </p>
+
+            <button
+              disabled={importando}
+              onClick={async () => {
+                setImportando(true);
+                setImportResult(null);
+                try {
+                  const resultado = await importarRegistros(usuario.id);
+                  setImportResult(resultado);
+                  if (resultado.erros.length === 0) {
+                    setAlerta({ tipo: "sucesso", msg: `📥 Importação concluída!\n\n✅ ${resultado.inseridos} registros novos adicionados\n🔄 ${resultado.atualizados} registros atualizados` });
+                  } else {
+                    setAlerta({ tipo: "info", msg: `📥 Importação concluída com avisos.\n\n✅ ${resultado.inseridos} novos | 🔄 ${resultado.atualizados} atualizados\n⚠️ ${resultado.erros.length} erro(s) — veja os detalhes abaixo.` });
+                  }
+                } catch (e) {
+                  if ((e as Error)?.message !== "CANCELLED") {
+                    setAlerta({ tipo: "erro", msg: (e as Error).message || "Erro ao importar registros." });
+                  }
+                } finally { setImportando(false); }
+              }}
+              style={{ background: "#1d4ed8", color: "white", border: "none", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: importando ? 0.6 : 1 }}
+            >
+              {importando ? "⏳ Importando..." : "📥 Importar Registros"}
+            </button>
+
+            {importResult && (
+              <div style={{ marginTop: 16, padding: 16, background: "#f8fafc", borderRadius: 10, border: "1px solid #e4e7ec" }}>
+                <p style={{ margin: "0 0 8px", fontWeight: 700, fontSize: 14, color: "#1a1d2e" }}>Resultado da Importação</p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, auto)", gap: "4px 20px", fontSize: 13, marginBottom: 12 }}>
+                  <span style={{ color: "#059669", fontWeight: 700 }}>✅ Novos:</span><span>{importResult.inseridos}</span><span />
+                  <span style={{ color: "#1d4ed8", fontWeight: 700 }}>🔄 Atualizados:</span><span>{importResult.atualizados}</span><span />
+                  <span style={{ color: "#667085", fontWeight: 700 }}>⏭️ Ignorados:</span><span>{importResult.ignorados}</span><span />
+                </div>
+                {importResult.detalhes.length > 0 && (
+                  <div style={{ fontSize: 12, color: "#344054" }}>
+                    <p style={{ margin: "0 0 4px", fontWeight: 600 }}>Por tabela:</p>
+                    {importResult.detalhes.map(d => (
+                      <div key={d.tabela} style={{ padding: "2px 0" }}>
+                        <strong>{d.tabela}</strong>: {d.inseridos} novos, {d.atualizados} atualizados
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {importResult.erros.length > 0 && (
+                  <div style={{ marginTop: 8, padding: 10, background: "#fef2f2", borderRadius: 8, fontSize: 12, color: "#991b1b" }}>
+                    <p style={{ margin: "0 0 4px", fontWeight: 700 }}>Erros:</p>
+                    {importResult.erros.map((e, i) => <div key={i}>{e}</div>)}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
       )}
 
       {/* ── Identidade institucional ── */}
