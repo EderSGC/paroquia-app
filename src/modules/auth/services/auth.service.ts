@@ -5,10 +5,27 @@ import { hashSenha, verificarSenha } from "../../../core/utils/crypto";
 import { registrarAuditoria } from "@core/services/auditoria.service";
 import { SECURITY } from "@core/config/constants";
 
-const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+const RATE_LIMIT_KEY = "paroquia_login_attempts";
+
+function loadAttempts(): Map<string, { count: number; lockedUntil: number }> {
+  try {
+    const stored = localStorage.getItem(RATE_LIMIT_KEY);
+    if (!stored) return new Map();
+    return new Map(Object.entries(JSON.parse(stored)));
+  } catch {
+    return new Map();
+  }
+}
+
+function saveAttempts(map: Map<string, { count: number; lockedUntil: number }>): void {
+  try {
+    localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(Object.fromEntries(map)));
+  } catch { /* ok */ }
+}
 
 function checkRateLimit(login: string): { blocked: boolean; remainingMs?: number } {
   const key = login.toLowerCase().trim();
+  const loginAttempts = loadAttempts();
   const entry = loginAttempts.get(key);
   if (!entry) return { blocked: false };
   if (entry.lockedUntil > Date.now()) {
@@ -16,22 +33,27 @@ function checkRateLimit(login: string): { blocked: boolean; remainingMs?: number
   }
   if (entry.lockedUntil > 0 && entry.lockedUntil <= Date.now()) {
     loginAttempts.delete(key);
+    saveAttempts(loginAttempts);
   }
   return { blocked: false };
 }
 
 function recordFailedAttempt(login: string): void {
   const key = login.toLowerCase().trim();
+  const loginAttempts = loadAttempts();
   const entry = loginAttempts.get(key) ?? { count: 0, lockedUntil: 0 };
   entry.count++;
   if (entry.count >= SECURITY.MAX_LOGIN_ATTEMPTS) {
     entry.lockedUntil = Date.now() + SECURITY.LOCKOUT_DURATION_MS;
   }
   loginAttempts.set(key, entry);
+  saveAttempts(loginAttempts);
 }
 
 function clearAttempts(login: string): void {
+  const loginAttempts = loadAttempts();
   loginAttempts.delete(login.toLowerCase().trim());
+  saveAttempts(loginAttempts);
 }
 
 interface SetupInput {

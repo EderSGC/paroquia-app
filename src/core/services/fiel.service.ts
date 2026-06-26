@@ -72,7 +72,7 @@ export const FielService = {
 
   async createFiel(input: CreateFielInput): Promise<{ id: number; created: boolean; cpfInvalido?: boolean }> {
     if (input.cpf && !isValidCPF(input.cpf)) {
-      return { id: 0, created: false, cpfInvalido: true };
+      return { id: -1, created: false, cpfInvalido: true };
     }
 
     const existingId = await FielService.findDuplicate(input);
