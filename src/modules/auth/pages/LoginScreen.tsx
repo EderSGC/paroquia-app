@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { AppLogo } from "../../../core/ui/AppLogo";
 import type { Paroquia, Usuario } from "../../../core/types/app.types";
-import { autenticarUsuario, redefinirSenha } from "../services/auth.service";
+import { autenticarUsuario, redefinirSenha, verificarPerguntaSeguranca } from "../services/auth.service";
 import { logger } from "@core/utils/logger";
 
 interface LoginScreenProps {
@@ -23,6 +23,8 @@ export function LoginScreen({ paroquia, onLogin }: LoginScreenProps) {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false);
   const [mostrarConfirmacaoSenha, setMostrarConfirmacaoSenha] = useState(false);
+  const [perguntaSeguranca, setPerguntaSeguranca] = useState<string | null>(null);
+  const [respostaSeguranca, setRespostaSeguranca] = useState("");
 
   const inputStyle = {
     width: "100%",
@@ -43,6 +45,8 @@ export function LoginScreen({ paroquia, onLogin }: LoginScreenProps) {
     setNomeRecuperacao("");
     setNovaSenha("");
     setConfirmarNovaSenha("");
+    setRespostaSeguranca("");
+    setPerguntaSeguranca(null);
     setMostrarSenha(false);
     setMostrarNovaSenha(false);
     setMostrarConfirmacaoSenha(false);
@@ -53,6 +57,8 @@ export function LoginScreen({ paroquia, onLogin }: LoginScreenProps) {
     setErro("");
     setMensagem("");
     setSenha("");
+    setRespostaSeguranca("");
+    setPerguntaSeguranca(null);
   }
 
   async function entrar() {
@@ -89,6 +95,12 @@ export function LoginScreen({ paroquia, onLogin }: LoginScreenProps) {
     }
   }
 
+  async function carregarPerguntaSeguranca() {
+    if (!loginVal.trim()) return;
+    const pergunta = await verificarPerguntaSeguranca(loginVal);
+    setPerguntaSeguranca(pergunta);
+  }
+
   async function salvarNovaSenha() {
     if (!loginVal || !loginVal.trim()) {
       setErro("Informe seu login para continuar.");
@@ -97,6 +109,11 @@ export function LoginScreen({ paroquia, onLogin }: LoginScreenProps) {
 
     if (!nomeRecuperacao || !nomeRecuperacao.trim()) {
       setErro("Informe seu nome completo exatamente como está cadastrado.");
+      return;
+    }
+
+    if (perguntaSeguranca && (!respostaSeguranca || !respostaSeguranca.trim())) {
+      setErro("Responda a pergunta de segurança.");
       return;
     }
 
@@ -125,7 +142,7 @@ export function LoginScreen({ paroquia, onLogin }: LoginScreenProps) {
     setMensagem("");
 
     try {
-      const redefiniu = await redefinirSenha(loginVal, nomeRecuperacao, novaSenha);
+      const redefiniu = await redefinirSenha(loginVal, nomeRecuperacao, novaSenha, respostaSeguranca || undefined);
 
       if (!redefiniu) {
         setErro("Não encontramos cadastro com esse login e esse nome completo.");
@@ -314,9 +331,32 @@ export function LoginScreen({ paroquia, onLogin }: LoginScreenProps) {
                     placeholder="Exatamente como foi cadastrado"
                     value={nomeRecuperacao}
                     onChange={(event) => setNomeRecuperacao(event.target.value)}
+                    onBlur={carregarPerguntaSeguranca}
                     onKeyDown={(event) => event.key === "Enter" && salvarNovaSenha()}
                   />
                 </div>
+                {perguntaSeguranca && (
+                  <div>
+                    <label
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "#8E8E93",
+                        display: "block",
+                        marginBottom: 4,
+                      }}
+                    >
+                      {perguntaSeguranca}
+                    </label>
+                    <input
+                      style={inputStyle}
+                      placeholder="Digite sua resposta"
+                      value={respostaSeguranca}
+                      onChange={(event) => setRespostaSeguranca(event.target.value)}
+                      onKeyDown={(event) => event.key === "Enter" && salvarNovaSenha()}
+                    />
+                  </div>
+                )}
                 {renderPasswordField({
                   label: "Nova senha",
                   placeholder: "Escolha uma senha fácil de lembrar",

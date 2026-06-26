@@ -95,6 +95,25 @@ async function recreateTableWithFKs(db: Database, cfg: RecreateConfig): Promise<
     ).then(r => Number(Object.values(r[0] ?? {})[0] ?? 0) > 0).catch(() => false);
 
     if (hasOldTable) {
+      const hasNewTable = await db.select<Record<string, unknown>[]>(
+        `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='${cfg.tableName}'`
+      ).then(r => Number(Object.values(r[0] ?? {})[0] ?? 0) > 0).catch(() => false);
+
+      if (hasNewTable) {
+        const newCount = await db.select<Record<string, unknown>[]>(
+          `SELECT COUNT(*) FROM "${cfg.tableName}"`
+        ).then(r => Number(Object.values(r[0] ?? {})[0] ?? 0)).catch(() => 0);
+        const oldCount = await db.select<Record<string, unknown>[]>(
+          `SELECT COUNT(*) FROM "${cfg.tableName}_old"`
+        ).then(r => Number(Object.values(r[0] ?? {})[0] ?? 0)).catch(() => 0);
+
+        if (newCount >= oldCount) {
+          logger.warn(`  ♻️  ${cfg.tableName}: nova tabela tem dados (${newCount} registros), removendo _old`);
+          await db.execute(`DROP TABLE "${cfg.tableName}_old"`).catch(() => {});
+          return true;
+        }
+      }
+
       logger.warn(`  ♻️  ${cfg.tableName}: restaurando de execução anterior interrompida`);
       await db.execute(`DROP TABLE IF EXISTS "${cfg.tableName}"`).catch(() => {});
       await db.execute(`ALTER TABLE "${cfg.tableName}_old" RENAME TO "${cfg.tableName}"`).catch(() => {});

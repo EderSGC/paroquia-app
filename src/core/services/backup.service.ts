@@ -162,7 +162,9 @@ export function iniciarBackupAutomatico(): void {
 
   autoBackupTimer = setInterval(async () => {
     try {
-      await fazerBackupNaPasta(config.pastaCloud!);
+      const currentConfig = getBackupConfig();
+      if (!currentConfig.pastaCloud) return;
+      await fazerBackupNaPasta(currentConfig.pastaCloud);
       logger.log("[Backup] Backup automático concluído");
     } catch (e) {
       console.error("[Backup] Falha no backup automático:", e);
@@ -220,6 +222,21 @@ export async function restaurarBackup(usuarioId?: number): Promise<void> {
     }
   } catch (e) {
     if ((e as Error).message.includes("SQLite")) throw e;
+    throw new Error("Não foi possível validar o arquivo selecionado.");
+  }
+
+  try {
+    const Database = (await import("@tauri-apps/plugin-sql")).default;
+    const testDb = await Database.load(`sqlite:${arquivo}`);
+    const check = await testDb.select<Record<string, unknown>[]>("PRAGMA integrity_check");
+    const resultado = String(Object.values(check[0] ?? {})[0] ?? "");
+    await testDb.close();
+    if (resultado !== "ok") {
+      throw new Error(`O banco de dados está corrompido: ${resultado}`);
+    }
+  } catch (e) {
+    if ((e as Error).message.includes("corrompido")) throw e;
+    throw new Error("O arquivo selecionado não é um banco de dados válido ou está corrompido.");
   }
 
   const confirmou = await confirm(

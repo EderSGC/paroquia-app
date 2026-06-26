@@ -131,7 +131,7 @@ class GrupoMembrosRepositoryClass extends BaseRepository<GrupoMembro> {
   async vincular(grupoId: number, fielId: number, cargo: string): Promise<boolean> {
     const db = await getDb();
     const existing = await db.select<{ id: number }[]>(
-      'SELECT id FROM grupo_membros WHERE grupo_id=$1 AND fiel_id=$2 AND deleted_at IS NULL',
+      'SELECT id FROM grupo_membros WHERE grupo_id=$1 AND fiel_id=$2',
       [grupoId, fielId]
     );
     if (existing.length > 0) return false;

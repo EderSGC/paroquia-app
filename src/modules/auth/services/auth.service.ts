@@ -5,10 +5,27 @@ import { hashSenha, verificarSenha } from "../../../core/utils/crypto";
 import { registrarAuditoria } from "@core/services/auditoria.service";
 import { SECURITY } from "@core/config/constants";
 
-const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+const RATE_LIMIT_KEY = "paroquia_login_attempts";
+
+function loadAttempts(): Map<string, { count: number; lockedUntil: number }> {
+  try {
+    const stored = localStorage.getItem(RATE_LIMIT_KEY);
+    if (!stored) return new Map();
+    return new Map(Object.entries(JSON.parse(stored)));
+  } catch {
+    return new Map();
+  }
+}
+
+function saveAttempts(map: Map<string, { count: number; lockedUntil: number }>): void {
+  try {
+    localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(Object.fromEntries(map)));
+  } catch { /* ok */ }
+}
 
 function checkRateLimit(login: string): { blocked: boolean; remainingMs?: number } {
   const key = login.toLowerCase().trim();
+  const loginAttempts = loadAttempts();
   const entry = loginAttempts.get(key);
   if (!entry) return { blocked: false };
   if (entry.lockedUntil > Date.now()) {
@@ -16,22 +33,27 @@ function checkRateLimit(login: string): { blocked: boolean; remainingMs?: number
   }
   if (entry.lockedUntil > 0 && entry.lockedUntil <= Date.now()) {
     loginAttempts.delete(key);
+    saveAttempts(loginAttempts);
   }
   return { blocked: false };
 }
 
 function recordFailedAttempt(login: string): void {
   const key = login.toLowerCase().trim();
+  const loginAttempts = loadAttempts();
   const entry = loginAttempts.get(key) ?? { count: 0, lockedUntil: 0 };
   entry.count++;
   if (entry.count >= SECURITY.MAX_LOGIN_ATTEMPTS) {
     entry.lockedUntil = Date.now() + SECURITY.LOCKOUT_DURATION_MS;
   }
   loginAttempts.set(key, entry);
+  saveAttempts(loginAttempts);
 }
 
 function clearAttempts(login: string): void {
+  const loginAttempts = loadAttempts();
   loginAttempts.delete(login.toLowerCase().trim());
+  saveAttempts(loginAttempts);
 }
 
 interface SetupInput {
@@ -253,7 +275,7 @@ export async function salvarConfiguracoesParoquia(dados: ConfigParoquia): Promis
 
 // ─── 5. REDEFINIR SENHA ───────────────────────────────────────────────────────
 
-export async function redefinirSenha(login: string, nomeCompleto: string, novaSenha: string): Promise<boolean> {
+export async function redefinirSenha(login: string, nomeCompleto: string, novaSenha: string, respostaSeguranca?: string): Promise<boolean> {
   try {
     if (!login || !nomeCompleto || !novaSenha) return false;
     if (novaSenha.trim().length < SECURITY.MIN_PASSWORD_LENGTH) return false;
@@ -268,6 +290,13 @@ export async function redefinirSenha(login: string, nomeCompleto: string, novaSe
       await registrarAuditoria({ usuario_id: usuario.id, acao: "ALTERACAO", tabela: "usuarios", registro_id: usuario.id, descricao: `Tentativa de reset de senha: nome não confere para "${login}"` });
       return false;
     }
+    const respostaDb = (usuario as unknown as Record<string, unknown>).resposta_seguranca as string | null;
+    if (respostaDb) {
+      if (!respostaSeguranca || respostaSeguranca.trim().toLowerCase() !== respostaDb.trim().toLowerCase()) {
+        await registrarAuditoria({ usuario_id: usuario.id, acao: "ALTERACAO", tabela: "usuarios", registro_id: usuario.id, descricao: `Tentativa de reset de senha: resposta de segurança incorreta para "${login}"` });
+        return false;
+      }
+    }
     await db.execute("UPDATE usuarios SET senha=? WHERE id=?", [await hashSenha(novaSenha.trim()), usuario.id]);
     await registrarAuditoria({ usuario_id: usuario.id, acao: "ALTERACAO", tabela: "usuarios", registro_id: usuario.id, descricao: `Senha redefinida para "${login}"` });
     return true;
@@ -275,6 +304,26 @@ export async function redefinirSenha(login: string, nomeCompleto: string, novaSe
     console.error("Erro ao redefinir senha:", error);
     return false;
   }
+}
+
+export async function verificarPerguntaSeguranca(login: string): Promise<string | null> {
+  try {
+    const db = await getDb();
+    const res = await db.select<Record<string, unknown>[]>(
+      "SELECT pergunta_seguranca FROM usuarios WHERE LOWER(login)=LOWER(?) AND deleted_at IS NULL",
+      [login.trim()]
+    );
+    if (res.length === 0) return null;
+    return (res[0].pergunta_seguranca as string) || null;
+  } catch { return null; }
+}
+
+export async function salvarPerguntaSeguranca(usuarioId: number, pergunta: string, resposta: string): Promise<void> {
+  const db = await getDb();
+  await db.execute(
+    "UPDATE usuarios SET pergunta_seguranca=?, resposta_seguranca=? WHERE id=?",
+    [pergunta.trim(), resposta.trim().toLowerCase(), usuarioId]
+  );
 }
 
 // ─── 6. GESTÃO DE USUÁRIOS (admin) ───────────────────────────────────────────
