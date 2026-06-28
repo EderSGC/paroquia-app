@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Impressão</title>
+  <style>
+    @page { size: A4; margin: 0; }
+    html, body { margin: 0; padding: 0; background: white; }
+    #conteudo { background: white; }
+    #loading {
+      position: fixed; inset: 0; background: white;
+      display: flex; align-items: center; justify-content: center;
+      font-family: Inter, -apple-system, sans-serif;
+      font-size: 16px; color: #1f3b73; font-weight: 700;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">Preparando impressão...</div>
+  <div id="conteudo"></div>
+  <script>
+    try {
+      const html = localStorage.getItem("__print_html__");
+      if (html) {
+        document.getElementById("conteudo").innerHTML = html;
+        localStorage.removeItem("__print_html__");
+
+        // Esperar imagens carregarem antes de imprimir
+        const images = document.querySelectorAll("img");
+        const promises = Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise(r => { img.onload = r; img.onerror = r; });
+        });
+
+        Promise.all(promises).then(() => {
+          document.getElementById("loading").style.display = "none";
+          setTimeout(() => {
+            window.print();
+            // Fechar a janela após impressão
+            setTimeout(() => {
+              try { window.__TAURI__?.invoke("plugin:window|close"); } catch(e) {}
+              window.close();
+            }, 500);
+          }, 400);
+        });
+      } else {
+        document.getElementById("loading").textContent = "Nenhum documento para imprimir.";
+      }
+    } catch(e) {
+      document.getElementById("loading").textContent = "Erro: " + e.message;
+    }
+  </script>
+</body>
+</html>

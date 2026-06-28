@@ -1,11 +1,13 @@
 // src/modules/documentos/pages/CartasPage.tsx
 import { gerarPDFDoPreview } from "@core/utils/pdfGenerator";
 import type { CSSProperties } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { Paroquia } from "../../../core/types/app.types";
 import { DocumentHeader } from "@core/components/DocumentHeader";
 import { FontSelector } from "@core/components/FontSelector";
+import { PagedPreview } from "@core/components/PagedPreview";
+import { RichTextEditor, plainTextToHtml } from "@core/components/RichTextEditor";
 import { useDocumentosRegistros } from "../hooks/useDocumentosRegistros";
 import type { DocumentoRegistro } from "../hooks/useDocumentosRegistros";
 import { RegistrosDocumentoPanel } from "../components/RegistrosDocumentoPanel";
@@ -50,10 +52,8 @@ const labelStyle: CSSProperties = {
 };
 
 export function CartasPage({ paroquia }: CartasPageProps) {
-  const printRef = useRef<HTMLElement | null>(null);
-
-  // Controle de fontes integrado ao ecossistema de documentos
   const [fonteDocumento, setFonteDocumento] = useState("Arial");
+  const [espacamento, setEspacamento] = useState(1.8);
 
   const [form, setForm] = useState<CartaForm>({
     numeroProtocolo: "",
@@ -68,10 +68,8 @@ export function CartasPage({ paroquia }: CartasPageProps) {
     cargoSignatario: "Pároco",
   });
 
-  // Divide o texto digitado em parágrafos separados ao detectar quebras de linha
-  const paragraphs = useMemo(() => {
-    return form.corpo.split("\n").filter(Boolean);
-  }, [form.corpo]);
+  const corpoHtml = useMemo(() => plainTextToHtml(form.corpo), [form.corpo]);
+  const despedidaHtml = useMemo(() => plainTextToHtml(form.despedida), [form.despedida]);
 
   function updateField<K extends keyof CartaForm>(key: K, value: CartaForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -118,11 +116,16 @@ export function CartasPage({ paroquia }: CartasPageProps) {
           Preencha os campos abaixo para formatar a correspondência oficial da paróquia.
         </p>
 
-        <div style={{ marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid #f2f4f7" }}>
-          <FontSelector 
-            fonteAtual={fonteDocumento} 
-            onChange={(novaFonte) => setFonteDocumento(novaFonte)} 
-          />
+        <div style={{ marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid #f2f4f7", display: "flex", alignItems: "flex-end", gap: 24, flexWrap: "wrap" }}>
+          <FontSelector fonteAtual={fonteDocumento} onChange={(novaFonte) => setFonteDocumento(novaFonte)} />
+          <div>
+            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#667085", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Espaçamento entre linhas</label>
+            <div style={{ display: "flex", gap: 4 }}>
+              {[{ label: "1.0", value: 1 }, { label: "1.5", value: 1.5 }, { label: "1.8", value: 1.8 }, { label: "2.0", value: 2 }].map((opt) => (
+                <button key={opt.value} type="button" onClick={() => setEspacamento(opt.value)} style={{ padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: espacamento === opt.value ? "1px solid #1f3b73" : "1px solid #d6dbe7", background: espacamento === opt.value ? "#1f3b73" : "#fff", color: espacamento === opt.value ? "#fff" : "#475467" }}>{opt.label}</button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18 }}>
@@ -152,11 +155,11 @@ export function CartasPage({ paroquia }: CartasPageProps) {
           </div>
           <div style={{ gridColumn: "1 / -1" }}>
             <label style={labelStyle}>Corpo da Carta</label>
-            <textarea style={{ ...fieldStyle, minHeight: 180, resize: "vertical" }} value={form.corpo} onChange={(e) => updateField("corpo", e.target.value)} />
+            <RichTextEditor value={corpoHtml} onChange={(html) => updateField("corpo", html)} minHeight={180} lineHeight={espacamento} />
           </div>
           <div style={{ gridColumn: "1 / -1" }}>
             <label style={labelStyle}>Mensagem de Despedida</label>
-            <textarea style={{ ...fieldStyle, minHeight: 88, resize: "vertical" }} value={form.despedida} onChange={(e) => updateField("despedida", e.target.value)} />
+            <RichTextEditor value={despedidaHtml} onChange={(html) => updateField("despedida", html)} minHeight={88} lineHeight={espacamento} />
           </div>
           <div>
             <label style={labelStyle}>Nome do Assinante</label>
@@ -191,12 +194,11 @@ export function CartasPage({ paroquia }: CartasPageProps) {
           </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "center", padding: 20, background: "#f8fafc", borderRadius: 16 }}>
-          <article
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: 20, background: "#f8fafc", borderRadius: 16 }}>
+          <PagedPreview
             id="papel-carta"
-            ref={printRef}
             style={{
-              width: 794, minHeight: 1123, background: "white", boxShadow: "0 20px 60px rgba(15, 23, 42, 0.12)",
+              width: 794, background: "white", boxShadow: "0 20px 60px rgba(15, 23, 42, 0.12)",
               borderRadius: 8, padding: "60px 64px", boxSizing: "border-box", color: "#111827",
               display: "flex", flexDirection: "column",
               fontFamily: `${fonteDocumento}, sans-serif`
@@ -205,7 +207,7 @@ export function CartasPage({ paroquia }: CartasPageProps) {
             {/* Cabeçalho padrão unificado da Paróquia */}
             <DocumentHeader paroquia={paroquia} />
 
-            <div style={{ marginTop: 40, fontSize: 15, lineHeight: 1.8, display: "flex", flexDirection: "column", flexGrow: 1 }}>
+            <div style={{ marginTop: 40, fontSize: 15, lineHeight: espacamento, display: "flex", flexDirection: "column", flexGrow: 1 }}>
               
               {/* Alinhamento da data à direita, comum em cartas formais */}
               <div style={{ textAlign: "right", marginBottom: 35 }}>
@@ -227,13 +229,15 @@ export function CartasPage({ paroquia }: CartasPageProps) {
               <p style={{ marginBottom: 20 }}>{form.saudacao}</p>
 
               {/* Parágrafos da carta justificados */}
-              <div style={{ display: "grid", gap: 16, textAlign: "justify", textIndent: "50px" }}>
-                {paragraphs.map((paragraph, index) => (
-                  <p key={index} style={{ margin: 0 }}>{paragraph}</p>
-                ))}
-              </div>
+              <div
+                style={{ textAlign: "justify", textIndent: "50px", lineHeight: espacamento }}
+                dangerouslySetInnerHTML={{ __html: form.corpo }}
+              />
 
-              <p style={{ marginTop: 30, marginBottom: 50 }}>{form.despedida}</p>
+              <div
+                style={{ marginTop: 30, marginBottom: 50 }}
+                dangerouslySetInnerHTML={{ __html: form.despedida }}
+              />
 
               {/* Espaçador flexível para empurrar a assinatura para o rodapé da folha */}
               {/* signature spacer removed */}
@@ -248,7 +252,7 @@ export function CartasPage({ paroquia }: CartasPageProps) {
                 <div style={{ fontSize: 14, color: "#3f3f46" }}>{form.cargoSignatario}</div>
               </div>
             </div>
-          </article>
+          </PagedPreview>
         </div>
       </section>
 

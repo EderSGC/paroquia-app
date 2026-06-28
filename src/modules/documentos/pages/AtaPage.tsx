@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { gerarPDFDoPreview } from "@core/utils/pdfGenerator";
 import type { Paroquia } from "../../../core/types/app.types";
 import { DocumentHeader } from "@core/components/DocumentHeader";
 import { FontSelector } from "@core/components/FontSelector";
+import { PagedPreview } from "@core/components/PagedPreview";
+import { RichTextEditor, plainTextToHtml } from "@core/components/RichTextEditor";
 import { useDocumentosRegistros } from "../hooks/useDocumentosRegistros";
 import type { DocumentoRegistro } from "../hooks/useDocumentosRegistros";
 import { RegistrosDocumentoPanel } from "../components/RegistrosDocumentoPanel";
@@ -20,8 +22,8 @@ const labelStyle: CSSProperties = {
 };
 
 export function AtaPage({ paroquia }: Props) {
-  // Estado para controlar a fonte escolhida
   const [fonte, setFonte] = useState("Times New Roman");
+  const [espacamento, setEspacamento] = useState(1.6);
 
   const [form, setForm] = useState({
     numeroProtocolo: "",
@@ -34,6 +36,11 @@ export function AtaPage({ paroquia }: Props) {
     secretario: "",
     presidente: ""
   });
+
+  const aberturaHtml = useMemo(() => plainTextToHtml(form.abertura), [form.abertura]);
+  const participantesHtml = useMemo(() => plainTextToHtml(form.participantes), [form.participantes]);
+  const ordemDiaHtml = useMemo(() => plainTextToHtml(form.ordemDia), [form.ordemDia]);
+  const decisoesHtml = useMemo(() => plainTextToHtml(form.decisoes), [form.decisoes]);
 
   const { registros, loading: loadingReg, proximoNumero, salvar, excluir, editandoId, iniciarEdicao } = useDocumentosRegistros("ata");
 
@@ -74,8 +81,17 @@ export function AtaPage({ paroquia }: Props) {
 <section style={{ background: "white", borderRadius: 18, border: "1px solid #e4e7ec", padding: 28 }}>
         <h2 style={{ marginBottom: 20 }}>Nova Ata Paroquial</h2>
         
-        {/* SELETOR DE FONTE ADICIONADO AQUI */}
-        <FontSelector fonteAtual={fonte} onChange={setFonte} />
+        <div style={{ marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid #f2f4f7", display: "flex", alignItems: "flex-end", gap: 24, flexWrap: "wrap" }}>
+          <FontSelector fonteAtual={fonte} onChange={setFonte} />
+          <div>
+            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#667085", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Espaçamento entre linhas</label>
+            <div style={{ display: "flex", gap: 4 }}>
+              {[{ label: "1.0", value: 1 }, { label: "1.5", value: 1.5 }, { label: "1.6", value: 1.6 }, { label: "2.0", value: 2 }].map((opt) => (
+                <button key={opt.value} type="button" onClick={() => setEspacamento(opt.value)} style={{ padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: espacamento === opt.value ? "1px solid #1f3b73" : "1px solid #d6dbe7", background: espacamento === opt.value ? "#1f3b73" : "#fff", color: espacamento === opt.value ? "#fff" : "#475467" }}>{opt.label}</button>
+              ))}
+            </div>
+          </div>
+        </div>
 
         <label style={labelStyle}>Número de Protocolo</label>
         <input style={fieldStyle} value={form.numeroProtocolo} onChange={e => setForm({...form, numeroProtocolo: e.target.value})} placeholder={proximoNumero || "Ex: 001/2026"} />
@@ -84,16 +100,16 @@ export function AtaPage({ paroquia }: Props) {
         <input style={fieldStyle} value={form.titulo} onChange={e => setForm({...form, titulo: e.target.value})} />
 
         <label style={labelStyle}>Abertura (Data, Hora e Local)</label>
-        <textarea style={{...fieldStyle, height: 80}} value={form.abertura} onChange={e => setForm({...form, abertura: e.target.value})} />
+        <RichTextEditor value={aberturaHtml} onChange={(html) => setForm(f => ({...f, abertura: html}))} minHeight={80} lineHeight={espacamento} />
 
         <label style={labelStyle}>Participantes</label>
-        <textarea style={{...fieldStyle, height: 80}} placeholder="Lista de presentes e ausências..." value={form.participantes} onChange={e => setForm({...form, participantes: e.target.value})} />
+        <RichTextEditor value={participantesHtml} onChange={(html) => setForm(f => ({...f, participantes: html}))} minHeight={80} lineHeight={espacamento} />
 
         <label style={labelStyle}>Ordem do Dia (Pauta)</label>
-        <textarea style={{...fieldStyle, height: 100}} value={form.ordemDia} onChange={e => setForm({...form, ordemDia: e.target.value})} />
+        <RichTextEditor value={ordemDiaHtml} onChange={(html) => setForm(f => ({...f, ordemDia: html}))} minHeight={100} lineHeight={espacamento} />
 
         <label style={labelStyle}>Discussões e Decisões</label>
-        <textarea style={{...fieldStyle, height: 200}} placeholder="Resumo fiel dos assuntos..." value={form.decisoes} onChange={e => setForm({...form, decisoes: e.target.value})} />
+        <RichTextEditor value={decisoesHtml} onChange={(html) => setForm(f => ({...f, decisoes: html}))} minHeight={200} lineHeight={espacamento} />
 
         <label style={labelStyle}>Horário de Encerramento</label>
         <input
@@ -131,32 +147,33 @@ export function AtaPage({ paroquia }: Props) {
         </button>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "center", background: "#f8fafc", padding: 40, borderRadius: 16 }}>
-          <article 
-            id="papel-ata" 
-            style={{ 
-              width: 794, 
-              minHeight: 1123, 
-              background: "white", 
-              padding: "60px", 
-              boxSizing: "border-box", 
-              fontFamily: `"${fonte}", serif`, // APLICAÇÃO DA FONTE NA PRÉ-VISUALIZAÇÃO
-              fontSize: "14px", 
-              lineHeight: "1.6", 
-              textAlign: "justify" 
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "#f8fafc", padding: 40, borderRadius: 16 }}>
+          <PagedPreview
+            id="papel-ata"
+            style={{
+              width: 794,
+              background: "white",
+              padding: "60px",
+              boxSizing: "border-box",
+              fontFamily: `"${fonte}", serif`,
+              fontSize: "14px",
+              lineHeight: espacamento,
+              textAlign: "justify",
+              boxShadow: "0 20px 60px rgba(15, 23, 42, 0.12)",
+              borderRadius: 8,
             }}
           >
             <DocumentHeader paroquia={paroquia} />
             
             <h2 style={{ textAlign: "center", textTransform: "uppercase", marginTop: 40, fontSize: 18 }}>{form.titulo}</h2>
 
-            <p style={{ marginTop: 30 }}><strong>ABERTURA:</strong> {form.abertura}</p>
-            <p><strong>PARTICIPANTES:</strong> {form.participantes || "________________________________"}</p>
-            <p><strong>ORDEM DO DIA:</strong> {form.ordemDia}</p>
-            
+            <div style={{ marginTop: 30 }}><strong>ABERTURA:</strong> <span dangerouslySetInnerHTML={{ __html: form.abertura }} /></div>
+            <div style={{ marginTop: 10 }}><strong>PARTICIPANTES:</strong> <span dangerouslySetInnerHTML={{ __html: form.participantes || "________________________________" }} /></div>
+            <div style={{ marginTop: 10 }}><strong>ORDEM DO DIA:</strong> <span dangerouslySetInnerHTML={{ __html: form.ordemDia }} /></div>
+
             <div style={{ marginTop: 20 }}>
               <strong>DISCUSSÕES E DELIBERAÇÕES:</strong>
-              <div style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>{form.decisoes || "\n\n\n\n\n"}</div>
+              <div style={{ marginTop: 10 }} dangerouslySetInnerHTML={{ __html: form.decisoes || "<p>&nbsp;</p>" }} />
             </div>
 
             <p style={{ marginTop: 30 }}>
@@ -174,7 +191,7 @@ export function AtaPage({ paroquia }: Props) {
                 <strong>{form.secretario || "________________"}</strong><br/>Secretário(a)
               </div>
             </div>
-          </article>
+          </PagedPreview>
         </div>
       </section>
 

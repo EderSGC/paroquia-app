@@ -33,28 +33,23 @@ fn imprimir_pdf(pdf_bytes: Vec<u8>, nome_arquivo: String) -> Result<String, Stri
 
     #[cfg(target_os = "macos")]
     {
-        std::process::Command::new("open")
-            .arg("-a").arg("Preview")
-            .arg(&caminho_str)
-            .spawn()
-            .map_err(|e| format!("Erro ao abrir Preview: {}", e))?;
-
         let caminho_clone = caminho_str.clone();
         std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_secs(2));
             let script = format!(
                 r#"tell application "Preview"
+    open POSIX file "{}"
     activate
-    delay 0.5
-    tell application "System Events"
-        keystroke "p" using command down
-    end tell
-end tell"#
+end tell
+delay 1.5
+tell application "System Events"
+    keystroke "p" using command down
+end tell"#,
+                caminho_clone
             );
             let _ = std::process::Command::new("osascript")
-                .arg("-e").arg(&script)
+                .arg("-e")
+                .arg(&script)
                 .output();
-            let _ = caminho_clone;
         });
     }
 
