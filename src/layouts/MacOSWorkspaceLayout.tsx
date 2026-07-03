@@ -187,7 +187,7 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
     const mod = activeModule as string;
     if (selectedItem) return <ItemDetailPanel />;
     if (mod === "dashboard")   return <DashboardPanel />;
-    if (mod === "financeiro")  return <FinanceiroPanel />;
+    if (mod === "financeiro")  return <FinanceiroPanel usuario={usuario} />;
     if (mod === "catequese")   return <CatequesePanel comunidadeNome={comunidadeNome} />;
     if (SACRAMENTAL_MODS[mod]) return <SacramentalPanel />;
     if (PASTORAL_ABAS[mod])    return <PastoralPanel comunidadeNome={comunidadeNome} />;
@@ -215,6 +215,7 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
         className="app-workspace"
         style={{
           display: "flex",
+          width: "100%",
           height: "100vh",
           overflow: "hidden",
           fontFamily: "-apple-system, 'SF Pro Display', BlinkMacSystemFont, 'Helvetica Neue', sans-serif",
@@ -230,16 +231,19 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
           onToggleTheme={() => setTheme(isDark ? "light" : "dark")}
         />
 
-        {/* Column 2 — Workspace (flex-1, scrollable)
+        {/* Column 2 — Workspace (flex-basis:0 + flex-grow:1, sempre ocupa o espaço restante)
             Dashboard: transparente (contemplativo).
             Módulos operacionais: superfície 90% opaca, vidro fosco. */}
         <div
           className="workspace-main mac-scrollbar"
+          data-surface="workspace"
           style={{
-            flex: 1,
+            flex: "1 1 0px",
             display: "flex",
             flexDirection: "column",
+            width: 0,
             minWidth: 0,
+            minHeight: 0,
             overflowY: "auto",
             overflowX: "hidden",
             position: "relative",
@@ -254,7 +258,6 @@ function WorkspaceShell({ paroquia, usuario, onParoquiaUpdate, onLogout }: Props
             backdropFilter: activeModule === "dashboard" ? undefined : "blur(10px)",
             WebkitBackdropFilter: activeModule === "dashboard" ? undefined : "blur(10px)",
             boxShadow: "0 1px 8px rgba(0,0,0,0.08)",
-            overflow: "hidden",
           }}
         >
           {renderWorkspace()}
