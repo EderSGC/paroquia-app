@@ -98,12 +98,16 @@ export function RelatorioMensalPreview({ paroquia, unidade, mes, lancamentos, co
           );
           const entAnt = lancsAnt.filter(r => r.tipo === 'ENTRADA').reduce((s, r) => s + r.valor, 0);
           const saiAnt = lancsAnt.filter(r => r.tipo === 'SAIDA').reduce((s, r) => s + r.valor, 0);
-          const base = Math.max(0, entAnt - saiAnt);
-          const c1 = base * ((cfg.comunidade ?? 30) / 100);
-          const c2 = (base - c1) * ((cfg.area_missionaria ?? 40) / 100);
-          const c3 = (base - c1 - c2) * ((cfg.arquidiocese ?? 29) / 100);
-          const c4 = (base - c1 - c2 - c3) * ((cfg.fundo_missionario ?? 1) / 100);
-          const saldoLiquido = base - c1 - c2 - c3 - c4;
+          const base = entAnt - saiAnt;
+          // Mês deficitário: sem repasses; o déficit abate o saldo inicial
+          let saldoLiquido = base;
+          if (base > 0) {
+            const c1 = base * ((cfg.comunidade ?? 30) / 100);
+            const c2 = (base - c1) * ((cfg.area_missionaria ?? 40) / 100);
+            const c3 = (base - c1 - c2) * ((cfg.arquidiocese ?? 29) / 100);
+            const c4 = (base - c1 - c2 - c3) * ((cfg.fundo_missionario ?? 1) / 100);
+            saldoLiquido = base - c1 - c2 - c3 - c4;
+          }
 
           setSaldoAnterior(saldoInicioAnt + saldoLiquido);
         }

@@ -23,13 +23,17 @@ export const PARTILHA_PADRAO: ConfigPartilha = {
  *   4. Fundo Missionário → sobre o restante após arquidiocese
  */
 export function calcularRepasse(saldoBase: number, cfg: ConfigPartilha): ResultadoRepasse {
-  const base = Math.max(0, saldoBase);
-  if (base === 0) {
+  if (saldoBase <= 0) {
+    // Déficit: não há o que repassar. O saldo negativo é devolvido em
+    // saldoDisponivel para ser abatido do saldo acumulado (Saldo Anterior) —
+    // o dinheiro em mãos é que cobre as despesas que excedem as entradas.
     return {
-      saldoBase: 0, comunidade: 0, areaMissionaria: 0,
-      arquidiocese: 0, fundoMissionario: 0, totalRepasse: 0, saldoDisponivel: 0,
+      saldoBase, comunidade: 0, areaMissionaria: 0,
+      arquidiocese: 0, fundoMissionario: 0, totalRepasse: 0,
+      saldoDisponivel: saldoBase,
     };
   }
+  const base = saldoBase;
   const comunidade       = base * (cfg.comunidade / 100);
   const r1               = base - comunidade;
   const areaMissionaria  = r1 * (cfg.areaMissionaria / 100);
